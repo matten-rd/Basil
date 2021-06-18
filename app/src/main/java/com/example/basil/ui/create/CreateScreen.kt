@@ -71,7 +71,7 @@ fun CreateImageRecipe(
     var title by remember { mutableStateOf("") }
     // Description state
     var description by remember { mutableStateOf("") }
-    // Image state
+    // Image state TODO: Use placeholders instead
     var thumbnailImage by remember { mutableStateOf("https://picsum.photos/600/600") }
     var recipeImage by remember { mutableStateOf("https://picsum.photos/600/600") }
 

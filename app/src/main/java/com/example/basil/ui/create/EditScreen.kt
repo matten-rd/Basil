@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.min
 import androidx.navigation.NavController
 import com.example.basil.R
 import com.example.basil.data.RecipeData
+import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
 import com.example.basil.util.getDomainName
@@ -69,11 +70,11 @@ fun EditScreen(
     var instructions by remember { mutableStateOf(recipe?.instructions?.toMutableStateList() ?: mutableStateListOf()) }
     var newInstruction by remember { mutableStateOf("") }
 
-    val rec by viewModel.recipe.observeAsState(
+    val rec by viewModel._recipe.observeAsState(
         RecipeData(
             url = source,
             imageUrl = image,
-            isScraped = recipe?.isScraped ?: false,
+            recipeState = recipe?.recipeState ?: RecipeState.WEBVIEW,
             title = title,
             description = description,
             ingredients = ingredients,
@@ -84,11 +85,22 @@ fun EditScreen(
             isLiked = recipe?.isLiked ?: false
         )
     )
-    val re = rec.copy(url = "hel")
-    println(rec.toString())
-    println(re.toString())
-    viewModel.onRecipeChange(re)
-    println(rec.toString())
+
+    val updatingRecipe by viewModel._recipe.observeAsState(
+        initial = recipe ?: RecipeData(
+            url = "",
+            imageUrl = "https://picsum.photos/600/600",
+            recipeState = RecipeState.WEBVIEW,
+            title = "",
+            description = "",
+            ingredients = mutableListOf<String>(),
+            instructions = mutableListOf<String>(),
+            cookTime = "PT0M",
+            yield = "4",
+            mealType = categoryOptions[1],
+            isLiked = false
+        )
+    )
 
     val openSheet: (BottomSheetScreens) -> Unit = {
         selectedBottomSheet = it
@@ -134,10 +146,10 @@ fun EditScreen(
                     navController = navController,
                     viewModel = viewModel,
                     openSheet = openSheet,
-                    title = title,
-                    setTitle = { title = it },
-                    description = description,
-                    setDescription = { description = it },
+                    title = updatingRecipe.title,
+                    setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it))  },
+                    description = updatingRecipe.description,
+                    setDescription = { viewModel.onRecipeChange(updatingRecipe.copy(description = it)) },
                     source = source,
                     image = image,
                     setImage = { launcher.launch(arrayOf("image/*")) },

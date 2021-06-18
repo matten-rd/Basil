@@ -33,6 +33,7 @@ import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
 import com.example.basil.data.RecipeData
+import com.example.basil.data.RecipeState
 import com.example.basil.ui.navigation.Screen
 import com.example.basil.ui.theme.Green100
 import com.example.basil.util.*
@@ -197,7 +198,8 @@ fun TabSheet(
             translationY = offsetY
         }
     ) {
-        if (recipe?.isScraped == true)
+        // TODO: change to when statement and add IMAGE tab
+        if (recipe?.recipeState == RecipeState.SCRAPED)
             InstructionsAndIngredients(
                 recipe = recipe,
                 openFraction = openFraction,

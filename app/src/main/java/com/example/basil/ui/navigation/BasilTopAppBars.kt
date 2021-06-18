@@ -15,9 +15,11 @@ import androidx.core.content.ContextCompat.startActivity
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.example.basil.data.RecipeData
+import com.example.basil.ui.RecipeViewModel
 
 
 @ExperimentalMaterialApi
@@ -128,8 +130,10 @@ fun DetailTopAppBar(
 fun CreateTopAppBar(
     scaffoldState: BackdropScaffoldState,
     scope: CoroutineScope,
-    navController: NavController
+    navController: NavController,
+    viewModel: RecipeViewModel
 ) {
+    val rec by viewModel._recipe.observeAsState()
     TopAppBar(
         title = {  },
         navigationIcon = {

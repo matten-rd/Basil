@@ -17,6 +17,7 @@ import java.lang.IllegalStateException
 import java.util.stream.Collectors
 import android.graphics.Bitmap
 import androidx.compose.runtime.produceState
+import com.example.basil.data.RecipeState
 import com.example.basil.util.*
 import com.gargoylesoftware.htmlunit.WebClient
 import com.gargoylesoftware.htmlunit.html.HtmlPage
@@ -59,7 +60,7 @@ fun parseURL(url: String): RecipeData {
         recipeData = RecipeData(
             url = url,
             imageUrl = images[0],
-            isScraped = false,
+            recipeState = RecipeState.WEBVIEW,
             title = title,
             description = description,
             ingredients = listOf(),
@@ -120,7 +121,7 @@ private fun getRecipeFromJsonld(
     return  RecipeData(
         url = url,
         imageUrl = img,
-        isScraped = true,
+        recipeState = RecipeState.SCRAPED,
         title = title,
         description = description,
         ingredients = ingredients,

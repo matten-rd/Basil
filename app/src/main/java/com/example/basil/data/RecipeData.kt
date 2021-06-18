@@ -11,7 +11,7 @@ data class RecipeData(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val url: String,
     val imageUrl: String,
-    val isScraped: Boolean,
+    val recipeState: RecipeState,
     val title: String,
     val description: String,
     val ingredients: List<String>,

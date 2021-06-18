@@ -4,6 +4,7 @@ import androidx.lifecycle.*
 import com.example.basil.common.Lce
 import com.example.basil.data.RecipeDao
 import com.example.basil.data.RecipeData
+import com.example.basil.data.RecipeState
 import com.example.basil.data.remote.parsing.Recipe
 import com.example.basil.data.remote.parsing.parseURL
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -70,7 +71,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 0",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -83,7 +84,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 1",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -96,7 +97,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 2",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -109,7 +110,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 3",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -122,7 +123,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 4",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -135,7 +136,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 5",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -148,7 +149,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 6",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),
@@ -161,7 +162,7 @@ class RecipeViewModel @Inject constructor(
         RecipeData(
             url = "https://picsum.photos/600/600",
             imageUrl = "https://picsum.photos/600/600",
-            isScraped = true,
+            recipeState = RecipeState.SCRAPED,
             title = "Recipe title 7",
             description = "Recipe description",
             ingredients = listOf("ing 1", "ing 2", "ing 3"),

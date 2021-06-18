@@ -76,7 +76,9 @@ fun MainScreen(recipeViewModel: RecipeViewModel) {
             )
             BasilApp(
                 recipeViewModel = recipeViewModel,
-                modifier = Modifier.alpha(contentAlpha).padding(top = contentTopPadding)
+                modifier = Modifier
+                    .alpha(contentAlpha)
+                    .padding(top = contentTopPadding)
             )
         }
 }
@@ -130,10 +132,11 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
                     var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
                     DetailTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, recipe = recipe)
                 }
-                Screen.Create.route -> CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController)
+                Screen.Create.route -> CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
+                Screen.CreateImage.route -> CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
                 Screen.Edit.route -> {
                     var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
-                    CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController)
+                    CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
                 }
 
                 else -> {  }
@@ -150,6 +153,7 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
                     DetailScreenRow(navController = navController, recipe = recipe)
                 }
                 composable(Screen.Create.route) { CreateRecipe(navController = navController, viewModel = recipeViewModel) }
+                composable(Screen.CreateImage.route) { CreateImageRecipe(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.Edit.route) {
                     var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
                     EditScreen(navController = navController, recipe = recipe, viewModel = recipeViewModel)
