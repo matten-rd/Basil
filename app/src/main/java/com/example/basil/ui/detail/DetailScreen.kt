@@ -34,6 +34,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
 import com.example.basil.data.RecipeData
 import com.example.basil.data.RecipeState
+import com.example.basil.ui.components.ErrorScreen
 import com.example.basil.ui.navigation.Screen
 import com.example.basil.ui.theme.Green100
 import com.example.basil.util.*
@@ -46,8 +47,19 @@ private val TabHeight = 50.dp
 
 @ExperimentalMaterialApi
 @Composable
-fun DetailScreenRow(navController: NavController, recipe: RecipeData?) {
+fun DetailScreen(navController: NavController, recipe: RecipeData?) {
+    if (recipe != null) {
+        DetailScreenContent(navController = navController, recipe = recipe)
+    } else {
+        ErrorScreen(errorMessage = "Oops! Något gick fel. Försök igen snart.")
+    }
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun DetailScreenContent(navController: NavController, recipe: RecipeData?) {
     BoxWithConstraints(
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter
     ) {
         val dragRange = constraints.maxHeight.toFloat()
@@ -65,7 +77,7 @@ fun DetailScreenRow(navController: NavController, recipe: RecipeData?) {
                     ),
                     thresholds = { _, _ -> FractionalThreshold(0.5f) },
                     orientation = Orientation.Vertical
-                )
+                ), contentAlignment = Alignment.TopCenter
         ) {
             val openFraction = if (sheetState.offset.value.isNaN()) {
                 0f

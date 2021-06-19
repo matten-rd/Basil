@@ -44,65 +44,65 @@ fun EditScreen(
     recipe: RecipeData?,
     viewModel: RecipeViewModel
 ) {
+    if (recipe != null) {
+        EditScreen1(navController = navController, recipe = recipe, viewModel = viewModel)
+    } else {
+        ErrorScreen(errorMessage = "Oops! Något gick fel! Försök igen snart!")
+    }
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun EditScreen1(
+    navController: NavController,
+    recipe: RecipeData,
+    viewModel: RecipeViewModel
+) {
     var selectedBottomSheet by remember { mutableStateOf(BottomSheetScreens.PORTIONS) }
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     val scope = rememberCoroutineScope()
     // Category state
     val categoryOptions = listOf("Förrätt", "Huvudrätt", "Efterrätt", "Bakning")
-    val (category, setCategory) = remember { mutableStateOf(recipe?.mealType ?: categoryOptions[1]) }
+    var category by remember { mutableStateOf(recipe.mealType) }
     // Portion state
-    val (numberOfPortions, setNumberOfPortions) = remember { mutableStateOf(recipe?.yield?.toIntOrNull() ?: 4) }
+    val (numberOfPortions, setNumberOfPortions) = remember { mutableStateOf(recipe.yield.toIntOrNull() ?: 4) }
     // Time state
-    val (hour, setHour) = remember { mutableStateOf(getHoursFromDuration(recipe?.cookTime ?: "PT0M")) }
-    val (minute, setMinute) = remember { mutableStateOf(getMinutesFromDuration(recipe?.cookTime ?: "PT0M")) }
+    val (hour, setHour) = remember { mutableStateOf(getHoursFromDuration(recipe.cookTime)) }
+    val (minute, setMinute) = remember { mutableStateOf(getMinutesFromDuration(recipe.cookTime)) }
     // Title state
-    var title by remember { mutableStateOf(recipe?.title ?: "") }
+    var title by remember { mutableStateOf(recipe.title) }
     // Description state
-    var description by remember { mutableStateOf(recipe?.description ?: "") }
+    var description by remember { mutableStateOf(recipe.description) }
     // Source state
-    var source by remember { mutableStateOf(recipe?.url ?: "") }
+    var source by remember { mutableStateOf(recipe.url) }
     // Image state
-    var image by remember { mutableStateOf(recipe?.imageUrl ?: "https://picsum.photos/600/600") }
+    var image by remember { mutableStateOf(recipe.imageUrl) }
     // Ingredients state
-    var ingredients by remember { mutableStateOf(recipe?.ingredients?.toMutableStateList() ?: mutableStateListOf()) }
+    var ingredients by remember { mutableStateOf(recipe.ingredients.toMutableStateList()) }
     var newIngredient by remember { mutableStateOf("") }
     // Ingredients state
-    var instructions by remember { mutableStateOf(recipe?.instructions?.toMutableStateList() ?: mutableStateListOf()) }
+    var instructions by remember { mutableStateOf(recipe.instructions.toMutableStateList()) }
     var newInstruction by remember { mutableStateOf("") }
 
     val updatingRecipe by viewModel.recipe.observeAsState(
         RecipeData(
-            id = recipe?.id ?: 0,
+            id = recipe.id,
             url = source,
             imageUrl = image,
-            recipeState = recipe?.recipeState ?: RecipeState.WEBVIEW,
+            recipeImageUrl = recipe.recipeImageUrl,
+            recipeState = recipe.recipeState,
             title = title,
             description = description,
             ingredients = ingredients,
             instructions = instructions,
-            cookTime = recipe?.cookTime ?: "PT0M", // write function to get this
+            cookTime = recipe.cookTime, // write function to get this
             yield = numberOfPortions.toString(),
             mealType = category,
-            isLiked = recipe?.isLiked ?: false
+            isLiked = recipe.isLiked
         )
     )
 
-
-    val updatingRecipe1 by viewModel.recipe.observeAsState(
-        initial = recipe ?: RecipeData(
-            url = "",
-            imageUrl = "https://picsum.photos/600/600",
-            recipeState = RecipeState.WEBVIEW,
-            title = "",
-            description = "",
-            ingredients = mutableListOf<String>(),
-            instructions = mutableListOf<String>(),
-            cookTime = "PT0M",
-            yield = "4",
-            mealType = categoryOptions[1],
-            isLiked = false
-        )
-    )
+    val updatingRecipe1 by viewModel.recipe.observeAsState(initial = recipe)
 
 
     val openSheet: (BottomSheetScreens) -> Unit = {
@@ -120,21 +120,25 @@ fun EditScreen(
     ModalBottomSheetLayout(
         sheetState = sheetState,
         sheetContent = {
-            if (recipe != null) {
-                when (selectedBottomSheet) {
-                    BottomSheetScreens.CATEGORY -> BottomSheetCategory(options = categoryOptions, selected = category, setSelected = setCategory, closeSheet = closeSheet)
-                    BottomSheetScreens.PORTIONS -> BottomSheetPortions(range = 1..20, selected = numberOfPortions, setSelected = setNumberOfPortions, closeSheet = closeSheet)
-                    BottomSheetScreens.TIME -> BottomSheetTime(
-                        hourRange = 0..10,
-                        selectedHour = hour,
-                        setSelectedHour = setHour,
-                        minutesRange = 0..59,
-                        selectedMinute = minute,
-                        setSelectedMinute = setMinute,
-                        closeSheet = closeSheet
-                    )
-                    BottomSheetScreens.SOURCE -> BottomSheetSource(source = source, setSource = { source = it }, closeSheet = closeSheet)
-                }
+            when (selectedBottomSheet) {
+                BottomSheetScreens.CATEGORY -> BottomSheetCategory(
+                    options = categoryOptions,
+                    selected = updatingRecipe.mealType,
+                    setSelected = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) },
+                    closeSheet = closeSheet
+                )
+                BottomSheetScreens.PORTIONS -> BottomSheetPortions(range = 1..20, selected = numberOfPortions, setSelected = setNumberOfPortions, closeSheet = closeSheet)
+                BottomSheetScreens.TIME -> BottomSheetTime(
+                    hourRange = 0..10,
+                    selectedHour = hour,
+                    setSelectedHour = setHour,
+                    minutesRange = 0..59,
+                    selectedMinute = minute,
+                    setSelectedMinute = setMinute,
+                    closeSheet = closeSheet
+                )
+                //TODO: this should redo the parsing step!
+                BottomSheetScreens.SOURCE -> BottomSheetSource(source = updatingRecipe.url, setSource = { viewModel.onRecipeChange(updatingRecipe.copy(url = it)) }, closeSheet = closeSheet)
             }
         }
     ) {
@@ -144,32 +148,32 @@ fun EditScreen(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            if (recipe != null) {
-                EditContent(
-                    navController = navController,
-                    viewModel = viewModel,
-                    openSheet = openSheet,
-                    title = updatingRecipe.title,
-                    setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it))  },
-                    description = updatingRecipe.description,
-                    setDescription = { viewModel.onRecipeChange(updatingRecipe.copy(description = it)) },
-                    source = source,
-                    image = image,
-                    setImage = { launcher.launch(arrayOf("image/*")) },
-                    ingredients = ingredients,
-                    addIngredient = { ingredients.add(newIngredient) ; newIngredient = "" },
-                    newIngredient = newIngredient,
-                    setNewIngredient = { newIngredient = it },
-                    instructions = instructions,
-                    addInstruction = { instructions.add(newInstruction) ; newInstruction = "" },
-                    newInstruction = newInstruction,
-                    setNewInstruction = { newInstruction = it },
-                    category = category,
-                    setCategory = setCategory,
-                    numberOfPortions = numberOfPortions.toString(),
-                    time = "$hour h $minute min"
-                )
-            }
+            EditContent(
+                navController = navController,
+                viewModel = viewModel,
+                openSheet = openSheet,
+                title = updatingRecipe.title,
+                setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it))  },
+                description = updatingRecipe.description,
+                setDescription = { viewModel.onRecipeChange(updatingRecipe.copy(description = it)) },
+                source = updatingRecipe.url,
+                image = updatingRecipe.imageUrl,
+                setImage = {
+                    launcher.launch(arrayOf("image/*"))
+                    viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = image)) },
+                ingredients = ingredients,
+                addIngredient = { ingredients.add(newIngredient) ; newIngredient = "" },
+                newIngredient = newIngredient,
+                setNewIngredient = { newIngredient = it },
+                instructions = instructions,
+                addInstruction = { instructions.add(newInstruction) ; newInstruction = "" },
+                newInstruction = newInstruction,
+                setNewInstruction = { newInstruction = it },
+                category = updatingRecipe.mealType,
+                setCategory = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) },
+                numberOfPortions = numberOfPortions.toString(),
+                time = "$hour h $minute min"
+            )
         }
     }
 }

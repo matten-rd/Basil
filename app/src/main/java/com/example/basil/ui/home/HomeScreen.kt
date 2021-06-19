@@ -27,18 +27,6 @@ import com.example.basil.ui.theme.Green500
 @ExperimentalMaterialApi
 @Composable
 fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
-    //viewModel.loadRecipe()
-    /*
-    val recipes = viewModel.mockRecipes
-    val ts = viewModel.recipe.observeAsState()
-    val test = ts.value
-    if (test != null) {
-        recipes.add(3, test)
-    }
-
-     */
-
-
     val recipesFromVM = viewModel.allRecipes.observeAsState()
 
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -52,10 +40,6 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
         recipesFromVM.value?.let { recipes1 ->
             BasilLazyRow(recipes = recipes1, navController = navController)
         }
-
-
-        //BasilLazyRow(recipes = recipes, navController = navController)
-
     }
 }
 

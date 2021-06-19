@@ -13,6 +13,9 @@ import androidx.compose.ui.layout.ContentScale
 import com.google.accompanist.coil.rememberCoilPainter
 import com.google.accompanist.imageloading.ImageLoadState
 
+/**
+ * Load image from url using Coil with placeholderColor.
+ */
 @Composable
 fun NetWorkImage(
     url: String,

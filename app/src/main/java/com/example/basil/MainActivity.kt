@@ -25,7 +25,7 @@ import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.create.CreateImageRecipe
 import com.example.basil.ui.create.CreateRecipe
 import com.example.basil.ui.create.EditScreen
-import com.example.basil.ui.detail.DetailScreenRow
+import com.example.basil.ui.detail.DetailScreen
 import com.example.basil.ui.home.HomeScreen
 import com.example.basil.ui.navigation.*
 import com.example.basil.ui.theme.BasilTheme
@@ -147,7 +147,7 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
                 composable(Screen.Home.route) { HomeScreen(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.Detail.route) {
                     var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe_detail")
-                    DetailScreenRow(navController = navController, recipe = recipe)
+                    DetailScreen(navController = navController, recipe = recipe)
                 }
                 composable(Screen.CreateUrl.route) { CreateRecipe(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.CreateImage.route) { CreateImageRecipe(navController = navController, viewModel = recipeViewModel) }

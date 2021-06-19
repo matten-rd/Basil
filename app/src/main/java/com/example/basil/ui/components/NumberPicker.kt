@@ -25,6 +25,9 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+/**
+ * A NumberPicker IOS style.
+ */
 @Composable
 fun NumberPicker(
     state: MutableState<Int>,

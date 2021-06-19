@@ -11,6 +11,7 @@ data class RecipeData(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val url: String,
     val imageUrl: String,
+    val recipeImageUrl: String,
     val recipeState: RecipeState,
     val title: String,
     val description: String,

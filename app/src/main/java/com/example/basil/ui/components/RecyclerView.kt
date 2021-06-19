@@ -6,7 +6,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 
 
-
+/**
+ * A custom staggered grid layout. Used to display all recipes.
+ */
 @Composable
 fun HorizontalStaggeredGrid(
     modifier: Modifier = Modifier,

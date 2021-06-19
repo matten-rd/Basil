@@ -1,28 +1,53 @@
 package com.example.basil.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.LocalTextStyle
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.basil.R
 
-
+/**
+ * Standard spacing that is used for most of the Basil app.
+ */
 @Composable
 fun BasilSpacer() {
     Spacer(modifier = Modifier.height(12.dp))
+}
+
+/**
+ * Error screen to be displayed when something goes wrong.
+ */
+@Composable
+fun ErrorScreen(
+    errorMessage: String,
+    errorIcon: @Composable () -> Unit = {
+        Icon(painter = painterResource(id = R.drawable.ic_fluent_error_circle_20_regular), contentDescription = null, modifier = Modifier.size(96.dp))
+    }
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        errorIcon()
+        Text(text = errorMessage, style = MaterialTheme.typography.h5, textAlign = TextAlign.Center)
+    }
 }
 
 /**
@@ -53,7 +78,9 @@ fun ReadonlyTextField(
     }
 }
 
-
+/**
+ * The TextField used for the Basil app.
+ */
 @Composable
 fun BasilTextField(
     modifier: Modifier = Modifier,
@@ -81,7 +108,9 @@ fun BasilTextField(
                 if (value.isEmpty()) {
                     Text(text = placeholder, style = textStyle.copy(color = color.copy(0.7f)))
                 }
-                innerTextField()
+                SelectionContainer {
+                    innerTextField()
+                }
             }
 
             trailingIcon()

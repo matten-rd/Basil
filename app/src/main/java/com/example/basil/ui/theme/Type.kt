@@ -39,7 +39,7 @@ val Typography = Typography(
     ),
     h5 = TextStyle(
         fontSize = 24.sp,
-        fontWeight = FontWeight.Medium
+        fontWeight = FontWeight.Light
     ),
     h6 = TextStyle(
         fontSize = 21.sp,

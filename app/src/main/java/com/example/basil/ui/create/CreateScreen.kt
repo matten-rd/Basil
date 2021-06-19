@@ -31,7 +31,6 @@ fun CreateRecipe(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
-    //var url by remember { mutableStateOf("") }
     val url by viewModel.url.observeAsState(initial = "")
     Column(modifier = Modifier.padding(16.dp)) {
         BasilTextField(
@@ -155,8 +154,10 @@ fun CreateImageRecipeContent(
 ) {
     EditTitle(title = title, setTitle = setTitle)
     BasilSpacer()
+    SubHeader(subheader = "Miniatyrbild")
     EditImage(url = thumbnailImage, setImage = setThumbnailImage)
     BasilSpacer()
+    SubHeader(subheader = "Receptbild")
     EditImage(url = recipeImage, setImage = setRecipeImage)
     BasilSpacer()
     EditDescription(description = description, setDescription = setDescription)

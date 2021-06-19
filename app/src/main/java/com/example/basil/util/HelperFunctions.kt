@@ -1,18 +1,21 @@
 package com.example.basil.util
 
 import android.util.Log
+import android.util.Patterns
 import java.net.URI
-import java.net.URISyntaxException
-import java.time.temporal.ChronoUnit
-import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
-import kotlin.time.toKotlinDuration
 
-@Throws(URISyntaxException::class)
+
 fun getDomainName(url: String): String {
+    if (!isValidUrl(url)) return "Fel inträffat!"
+
     val uri = URI(url)
     val domain: String = uri.host
     return if (domain.startsWith("www.")) domain.substring(4) else domain
+}
+
+fun isValidUrl(url: String?): Boolean {
+    url ?: return false
+    return Patterns.WEB_URL.matcher(url).matches()
 }
 
 fun extractNumbers(string: String): String {

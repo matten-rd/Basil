@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
+import com.example.basil.util.isValidUrl
 
 
 @ExperimentalMaterialApi
@@ -73,6 +74,8 @@ fun DetailTopAppBar(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val isValidUrl = isValidUrl(recipe?.url)
+
     val intent = remember {
         Intent(Intent.ACTION_VIEW, Uri.parse(recipe?.url ?: ""))
     }
@@ -92,7 +95,16 @@ fun DetailTopAppBar(
                 else
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_heart_24_regular), contentDescription = null)
             }
-            IconButton(onClick = { context.startActivity(intent) }) {
+            IconButton(onClick = {
+                if (isValidUrl)
+                    context.startActivity(intent)
+                else {
+                    scope.launch {
+                        scaffoldState.snackbarHostState
+                            .showSnackbar("Länken går inte att öppna.")
+                    }
+                }
+            }) {
                 Icon(painter = painterResource(id = R.drawable.ic_fluent_open_24_regular), contentDescription = null)
             }
 
@@ -142,7 +154,7 @@ fun CreateImageTopAppBar(
 ) {
     BaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
-        onSave = {  }
+        onSave = { /*TODO: Check that everything is ok and the save*/ }
     )
 }
 
@@ -158,13 +170,13 @@ fun CreateUrlTopAppBar(
     BaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
         onSave = {
-            if (!url.isNullOrEmpty()) {
+            if (!url.isNullOrEmpty() && isValidUrl(url)) {
                 viewModel.createRecipe(url!!)
                 navController.navigate(Screen.Home.route)
             } else {
                 scope.launch {
                     scaffoldState.snackbarHostState
-                        .showSnackbar("Ange en länk till ett recept!")
+                        .showSnackbar("Ange en giltig länk till ett recept!")
                 }
             }
         }

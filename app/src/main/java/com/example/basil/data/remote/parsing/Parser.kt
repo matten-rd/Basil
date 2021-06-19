@@ -60,6 +60,7 @@ fun parseURL(url: String): RecipeData {
         recipeData = RecipeData(
             url = url,
             imageUrl = images[0],
+            recipeImageUrl = "",
             recipeState = RecipeState.WEBVIEW,
             title = title,
             description = description,
@@ -121,6 +122,7 @@ private fun getRecipeFromJsonld(
     return  RecipeData(
         url = url,
         imageUrl = img,
+        recipeImageUrl = "",
         recipeState = RecipeState.SCRAPED,
         title = title,
         description = description,
