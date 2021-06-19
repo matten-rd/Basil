@@ -35,6 +35,7 @@ import androidx.navigation.NavController
 import com.example.basil.data.RecipeData
 import com.example.basil.data.RecipeState
 import com.example.basil.ui.components.ErrorScreen
+import com.example.basil.ui.components.NetWorkImage
 import com.example.basil.ui.navigation.Screen
 import com.example.basil.ui.theme.Green100
 import com.example.basil.util.*
@@ -57,7 +58,7 @@ fun DetailScreen(navController: NavController, recipe: RecipeData?) {
 
 @ExperimentalMaterialApi
 @Composable
-fun DetailScreenContent(navController: NavController, recipe: RecipeData?) {
+fun DetailScreenContent(navController: NavController, recipe: RecipeData) {
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter
@@ -103,7 +104,7 @@ fun DetailScreenContent(navController: NavController, recipe: RecipeData?) {
 enum class SheetState { OPEN, CLOSED }
 
 @Composable
-fun DetailLanding(recipe: RecipeData?) {
+fun DetailLanding(recipe: RecipeData) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -119,13 +120,13 @@ fun DetailLanding(recipe: RecipeData?) {
 }
 
 @Composable
-fun TitleAndDescription(recipe: RecipeData?) {
+fun TitleAndDescription(recipe: RecipeData) {
     ConstraintLayout() {
         val (title, line1, emptybox, descbox, desctext) = createRefs()
 
         // Title
         Text(
-            text = recipe?.title ?: "",
+            text = recipe.title,
             style = MaterialTheme.typography.h2,
             color = MaterialTheme.colors.secondary,
             textAlign = TextAlign.Center,
@@ -169,7 +170,7 @@ fun TitleAndDescription(recipe: RecipeData?) {
                 }
         )
         Text(
-            text = recipe?.description ?: "",
+            text = recipe.description,
             style = MaterialTheme.typography.subtitle1,
             color = MaterialTheme.colors.primary,
             textAlign = TextAlign.Center,
@@ -187,7 +188,7 @@ fun TitleAndDescription(recipe: RecipeData?) {
 
 @Composable
 fun TabSheet(
-    recipe: RecipeData?,
+    recipe: RecipeData,
     openFraction: Float,
     height: Float,
     updateSheet: (SheetState) -> Unit
@@ -210,21 +211,28 @@ fun TabSheet(
             translationY = offsetY
         }
     ) {
-        // TODO: change to when statement and add IMAGE tab
-        if (recipe?.recipeState == RecipeState.SCRAPED)
-            InstructionsAndIngredients(
+        when (recipe.recipeState) {
+            RecipeState.SCRAPED -> InstructionsAndIngredients(
                 recipe = recipe,
                 openFraction = openFraction,
                 surfaceColor = surfaceColor,
                 updateSheet = updateSheet
             )
-        else
-            WebViewTabLayout(
+            RecipeState.WEBVIEW -> SingleTabLayout(
                 recipe = recipe,
                 openFraction = openFraction,
                 surfaceColor = surfaceColor,
-                updateSheet = updateSheet
+                updateSheet = updateSheet,
+                type = RecipeState.WEBVIEW
             )
+            RecipeState.IMAGE -> SingleTabLayout(
+                recipe = recipe,
+                openFraction = openFraction,
+                surfaceColor = surfaceColor,
+                updateSheet = updateSheet,
+                type = RecipeState.IMAGE
+            )
+        }
     }
 }
 
@@ -232,7 +240,7 @@ fun TabSheet(
 @Composable
 fun PortionsAndCategory(
     modifier: Modifier = Modifier,
-    recipe: RecipeData?
+    recipe: RecipeData
 ) {
     Row(
         modifier = modifier
@@ -247,7 +255,7 @@ fun PortionsAndCategory(
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
             Text(text = "Portioner", style = MaterialTheme.typography.subtitle2)
-            Text(text = recipe?.yield.toString(), style = MaterialTheme.typography.subtitle1)
+            Text(text = recipe.yield, style = MaterialTheme.typography.subtitle1)
         }
         Spacer(
             modifier = Modifier
@@ -261,7 +269,7 @@ fun PortionsAndCategory(
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
             Text(text = "Tid", style = MaterialTheme.typography.subtitle2)
-            Text(text = humanReadableDuration(recipe?.cookTime ?: "PT0M"), style = MaterialTheme.typography.subtitle1)
+            Text(text = humanReadableDuration(recipe.cookTime), style = MaterialTheme.typography.subtitle1)
         }
 
     }
@@ -269,14 +277,14 @@ fun PortionsAndCategory(
 
 @Composable
 fun InstructionsAndIngredients(
-    recipe: RecipeData?,
+    recipe: RecipeData,
     openFraction: Float,
     surfaceColor: Color = MaterialTheme.colors.background,
     updateSheet: (SheetState) -> Unit
 ) {
 
     var state by remember { mutableStateOf(0) }
-    val titles = listOf("Ingredienser", "Instruktioner", recipe?.let { getDomainName(it.url) } ?: "Recept")
+    val titles = listOf("Ingredienser", "Instruktioner", getDomainName(recipe.url))
 
     Box(modifier = Modifier.fillMaxWidth()) {
 
@@ -319,13 +327,13 @@ fun InstructionsAndIngredients(
 @Composable
 fun IngredientsTab(
     modifier: Modifier = Modifier,
-    recipe: RecipeData?
+    recipe: RecipeData
 ) {
     Column(modifier = modifier
         .padding(16.dp)
         .verticalScroll(rememberScrollState())
     ) {
-        recipe?.ingredients?.forEach { ingredient ->
+        recipe.ingredients.forEach { ingredient ->
             Text(
                 text = "•  $ingredient",
                 style = MaterialTheme.typography.subtitle1
@@ -338,7 +346,7 @@ fun IngredientsTab(
 @Composable
 fun InstructionsTab(
     modifier: Modifier = Modifier,
-    recipe: RecipeData?
+    recipe: RecipeData
 ) {
     Row(
         modifier = Modifier
@@ -348,7 +356,7 @@ fun InstructionsTab(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = modifier.weight(5f)) {
-            recipe?.instructions?.forEach { instruction ->
+            recipe.instructions.forEach { instruction ->
                 Text(
                     text = instruction,
                     style = MaterialTheme.typography.subtitle1
@@ -356,7 +364,7 @@ fun InstructionsTab(
             }
         }
         Column(modifier = modifier.weight(1f), horizontalAlignment = Alignment.End) {
-            recipe?.instructions?.forEachIndexed { index, instruction ->
+            recipe.instructions.forEachIndexed { index, instruction ->
                 Text(
                     text = String.format("%02d", index+1),
                     modifier = Modifier.padding(vertical = 8.dp),
@@ -369,14 +377,19 @@ fun InstructionsTab(
 }
 
 @Composable
-fun WebViewTabLayout(
-    recipe: RecipeData?,
+fun SingleTabLayout(
+    recipe: RecipeData,
     openFraction: Float,
     surfaceColor: Color = MaterialTheme.colors.background,
-    updateSheet: (SheetState) -> Unit
+    updateSheet: (SheetState) -> Unit,
+    type: RecipeState
 ) {
     var state by remember { mutableStateOf(0) }
-    val titles = listOf(recipe?.url?.let { getDomainName(it) } ?: "RECEPT")
+    val titles =
+        if (type == RecipeState.WEBVIEW)
+            listOf(getDomainName(recipe.url))
+        else
+            listOf("RECEPT")
 
     Box(modifier = Modifier.fillMaxWidth()) {
 
@@ -403,7 +416,11 @@ fun WebViewTabLayout(
                     }
                 }
             }
-            WebViewTab(recipe = recipe)
+            if (type == RecipeState.WEBVIEW)
+                WebViewTab(recipe = recipe)
+            else
+                //TODO: Check valid url
+                ImageTab(url = recipe.recipeImageUrl)
         }
     }
 
@@ -412,8 +429,9 @@ fun WebViewTabLayout(
 
 @Composable
 fun WebViewTab(
-    recipe: RecipeData?
+    recipe: RecipeData
 ) {
+    // TODO: Check valid url
     Row(
         modifier = Modifier.verticalScroll(rememberScrollState())
     ) {
@@ -424,23 +442,23 @@ fun WebViewTab(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 webViewClient = WebViewClient()
-                if (recipe != null) {
-                    loadUrl(recipe.url)
-                }
+                loadUrl(recipe.url)
             }
         }, update = {
-            if (recipe != null) {
-                it.loadUrl(recipe.url)
-            }
+            it.loadUrl(recipe.url)
         })
     }
 
 }
 
-@Composable
-fun InstructionItem(
-    header: String,
-    instruction: String
-) {
 
+@Composable
+fun ImageTab(
+    url: String
+) {
+    NetWorkImage(
+        url = url,
+        contentDescription = null,
+        modifier = Modifier.fillMaxSize()
+    )
 }

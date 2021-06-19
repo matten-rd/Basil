@@ -95,7 +95,7 @@ fun LandingScreen(
         .background(color = MaterialTheme.colors.primary), contentAlignment = Alignment.Center) {
         val currentOnTimeout by rememberUpdatedState(newValue = onTimeOut)
 
-        LaunchedEffect(true) {
+        LaunchedEffect(Unit) {
             delay(SplashWaitTime)
             currentOnTimeout()
         }

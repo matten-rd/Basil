@@ -1,5 +1,6 @@
 package com.example.basil.ui.create
 
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -7,10 +8,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
@@ -18,21 +16,14 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
 import androidx.navigation.NavController
 import com.example.basil.R
 import com.example.basil.data.RecipeData
-import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
-import com.example.basil.util.getDomainName
-import com.example.basil.util.getHoursFromDuration
-import com.example.basil.util.getMinutesFromDuration
-import kotlinx.coroutines.CoroutineScope
+import com.example.basil.util.*
 import kotlinx.coroutines.launch
 
 enum class BottomSheetScreens { CATEGORY, PORTIONS, TIME, SOURCE }
@@ -84,7 +75,7 @@ fun EditScreen1(
     var instructions by remember { mutableStateOf(recipe.instructions.toMutableStateList()) }
     var newInstruction by remember { mutableStateOf("") }
 
-    val updatingRecipe by viewModel.recipe.observeAsState(
+    val updatingRecipe1 by viewModel.recipe.observeAsState(
         RecipeData(
             id = recipe.id,
             url = source,
@@ -95,15 +86,14 @@ fun EditScreen1(
             description = description,
             ingredients = ingredients,
             instructions = instructions,
-            cookTime = recipe.cookTime, // write function to get this
+            cookTime = recipe.cookTime,
             yield = numberOfPortions.toString(),
             mealType = category,
             isLiked = recipe.isLiked
         )
     )
-
-    val updatingRecipe1 by viewModel.recipe.observeAsState(initial = recipe)
-
+    // TODO: Reset the viewModel recipe to original if the back button is pressed
+    val updatingRecipe by viewModel.recipe.observeAsState(initial = recipe)
 
     val openSheet: (BottomSheetScreens) -> Unit = {
         selectedBottomSheet = it
@@ -113,9 +103,12 @@ fun EditScreen1(
         scope.launch { sheetState.hide() }
     }
     val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null)
+        if (uri != null) {
             image = uri.toString()
+            viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = image))
+        }
     }
+
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
@@ -127,18 +120,35 @@ fun EditScreen1(
                     setSelected = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) },
                     closeSheet = closeSheet
                 )
-                BottomSheetScreens.PORTIONS -> BottomSheetPortions(range = 1..20, selected = numberOfPortions, setSelected = setNumberOfPortions, closeSheet = closeSheet)
+                BottomSheetScreens.PORTIONS -> BottomSheetPortions(
+                    range = 1..20,
+                    selected = updatingRecipe.yield.toIntOrNull() ?: 4,
+                    setSelected = { viewModel.onRecipeChange(updatingRecipe.copy(yield = it.toString())) },
+                    closeSheet = closeSheet
+                )
                 BottomSheetScreens.TIME -> BottomSheetTime(
                     hourRange = 0..10,
-                    selectedHour = hour,
-                    setSelectedHour = setHour,
+                    selectedHour = getHoursFromDuration(updatingRecipe.cookTime),
+                    setSelectedHour = {
+                        val min = getMinutesFromDuration(updatingRecipe.cookTime)
+                        val newCookTime = getDurationFromHourAndMinute(it, min)
+                        viewModel.onRecipeChange(updatingRecipe.copy(cookTime = newCookTime))
+                                      },
                     minutesRange = 0..59,
-                    selectedMinute = minute,
-                    setSelectedMinute = setMinute,
+                    selectedMinute = getMinutesFromDuration(updatingRecipe.cookTime),
+                    setSelectedMinute = {
+                        val hour = getHoursFromDuration(updatingRecipe.cookTime)
+                        val newCookTime = getDurationFromHourAndMinute(hour, it)
+                        viewModel.onRecipeChange(updatingRecipe.copy(cookTime = newCookTime))
+                                        },
                     closeSheet = closeSheet
                 )
                 //TODO: this should redo the parsing step!
-                BottomSheetScreens.SOURCE -> BottomSheetSource(source = updatingRecipe.url, setSource = { viewModel.onRecipeChange(updatingRecipe.copy(url = it)) }, closeSheet = closeSheet)
+                BottomSheetScreens.SOURCE -> BottomSheetSource(
+                    source = updatingRecipe.url,
+                    setSource = { viewModel.onRecipeChange(updatingRecipe.copy(url = it)) },
+                    closeSheet = closeSheet
+                )
             }
         }
     ) {
@@ -153,26 +163,32 @@ fun EditScreen1(
                 viewModel = viewModel,
                 openSheet = openSheet,
                 title = updatingRecipe.title,
-                setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it))  },
+                setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it)) },
                 description = updatingRecipe.description,
                 setDescription = { viewModel.onRecipeChange(updatingRecipe.copy(description = it)) },
                 source = updatingRecipe.url,
                 image = updatingRecipe.imageUrl,
-                setImage = {
-                    launcher.launch(arrayOf("image/*"))
-                    viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = image)) },
-                ingredients = ingredients,
-                addIngredient = { ingredients.add(newIngredient) ; newIngredient = "" },
+                setImage = { launcher.launch(arrayOf("image/*")) },
+                ingredients = updatingRecipe.ingredients,
+                addIngredient = {
+                    ingredients.add(newIngredient)
+                    viewModel.onRecipeChange(updatingRecipe.copy(ingredients = ingredients))
+                    newIngredient = ""
+                                },
                 newIngredient = newIngredient,
                 setNewIngredient = { newIngredient = it },
-                instructions = instructions,
-                addInstruction = { instructions.add(newInstruction) ; newInstruction = "" },
+                instructions = updatingRecipe.instructions,
+                addInstruction = {
+                    instructions.add(newInstruction)
+                    viewModel.onRecipeChange(updatingRecipe.copy(instructions = instructions))
+                    newInstruction = ""
+                                 },
                 newInstruction = newInstruction,
                 setNewInstruction = { newInstruction = it },
                 category = updatingRecipe.mealType,
                 setCategory = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) },
-                numberOfPortions = numberOfPortions.toString(),
-                time = "$hour h $minute min"
+                numberOfPortions = updatingRecipe.yield,
+                time = humanReadableDuration(updatingRecipe.cookTime)
             )
         }
     }

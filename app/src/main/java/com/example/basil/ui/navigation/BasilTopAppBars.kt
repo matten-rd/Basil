@@ -192,10 +192,13 @@ fun EditTopAppBar(
     viewModel: RecipeViewModel
 ) {
     val currentRecipe by viewModel.recipe.observeAsState()
+    val contentResolver = LocalContext.current.applicationContext.contentResolver
+    val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
     BaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
         onSave = {
             currentRecipe?.let { viewModel.updateRecipe(it) }
+            contentResolver.takePersistableUriPermission(Uri.parse(currentRecipe?.imageUrl), takeFlags)
             navController.navigate(Screen.Home.route)
         }
     )

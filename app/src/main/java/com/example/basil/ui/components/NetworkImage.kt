@@ -26,7 +26,8 @@ fun NetWorkImage(
 ) {
     Box(modifier = modifier) {
         val painter = rememberCoilPainter(
-            request = url
+            request = url,
+            fadeIn = true
         )
         Image(
             painter = painter,

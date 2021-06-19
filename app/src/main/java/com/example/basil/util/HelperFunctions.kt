@@ -6,7 +6,7 @@ import java.net.URI
 
 
 fun getDomainName(url: String): String {
-    if (!isValidUrl(url)) return "Fel inträffat!"
+    if (!isValidUrl(url)) return "Recept"
 
     val uri = URI(url)
     val domain: String = uri.host
@@ -55,4 +55,9 @@ fun humanReadableDuration(s: String): String {
         Log.e("humanReadableDuration", e.message.toString())
         "0 h 0 min"
     }
+}
+
+fun getDurationFromHourAndMinute(hour: Int, minute: Int): String {
+    val totalMinutes = hour*60 + minute
+    return "PT${totalMinutes}M"
 }

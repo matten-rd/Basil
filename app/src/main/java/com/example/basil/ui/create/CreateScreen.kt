@@ -18,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.basil.R
+import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.BasilSpacer
 import com.example.basil.ui.components.BasilTextField
@@ -91,6 +92,7 @@ fun CreateImageRecipe(
         if (uri != null)
             recipeImage = uri.toString()
     }
+
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
