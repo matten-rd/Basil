@@ -28,12 +28,18 @@ import com.example.basil.ui.theme.Green500
 @Composable
 fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
     //viewModel.loadRecipe()
+    /*
     val recipes = viewModel.mockRecipes
     val ts = viewModel.recipe.observeAsState()
     val test = ts.value
     if (test != null) {
         recipes.add(3, test)
     }
+
+     */
+
+
+    val recipesFromVM = viewModel.allRecipes.observeAsState()
 
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
@@ -43,7 +49,13 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
             letterSpacing = 8.sp
         )
 
-        BasilLazyRow(recipes = recipes.toList(), navController = navController)
+        recipesFromVM.value?.let { recipes1 ->
+            BasilLazyRow(recipes = recipes1, navController = navController)
+        }
+
+
+        //BasilLazyRow(recipes = recipes, navController = navController)
+
     }
 }
 
@@ -68,7 +80,8 @@ fun BasilLazyRow(
                 BasilRecipeCard(
                     recipeData = recipe,
                     onClick = {
-                        navController.currentBackStackEntry?.arguments?.putParcelable("recipe", recipe)
+                        println(recipe.toString())
+                        navController.currentBackStackEntry?.arguments?.putParcelable("recipe_detail", recipe)
                         navController.navigate(Screen.Detail.route)
                     }
                 )

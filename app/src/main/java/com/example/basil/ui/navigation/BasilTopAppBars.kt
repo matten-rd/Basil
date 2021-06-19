@@ -68,12 +68,13 @@ fun DetailTopAppBar(
     scaffoldState: BackdropScaffoldState,
     scope: CoroutineScope,
     navController: NavController,
-    recipe: RecipeData?
+    recipe: RecipeData?,
+    viewModel: RecipeViewModel
 ) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val intent = remember {
-        Intent(Intent.ACTION_VIEW, Uri.parse(recipe?.url))
+        Intent(Intent.ACTION_VIEW, Uri.parse(recipe?.url ?: ""))
     }
     TopAppBar(
         title = {  },
@@ -105,7 +106,7 @@ fun DetailTopAppBar(
             ) {
                 DropdownMenuItem(
                     onClick = {
-                        navController.currentBackStackEntry?.arguments?.putParcelable("recipe", recipe)
+                        navController.currentBackStackEntry?.arguments?.putParcelable("recipe_edit", recipe)
                         navController.navigate(Screen.Edit.route)
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -113,7 +114,12 @@ fun DetailTopAppBar(
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_document_edit_24_regular), contentDescription = null, modifier = Modifier.padding(4.dp))
                     Text(text = "Redigera", modifier = Modifier.padding(12.dp, 0.dp), style = MaterialTheme.typography.body1)
                 }
-                DropdownMenuItem(onClick = { /*TODO: Delete this recipe */ }, modifier = Modifier.fillMaxWidth()) {
+                DropdownMenuItem(onClick = {
+                    if (recipe != null) {
+                        viewModel.deleteRecipe(recipe)
+                        navController.navigate(Screen.Home.route)
+                    }
+                }, modifier = Modifier.fillMaxWidth()) {
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_delete_24_regular), contentDescription = null, modifier = Modifier.padding(4.dp))
                     Text(text = "Radera", modifier = Modifier.padding(12.dp, 0.dp), style = MaterialTheme.typography.body1)
                 }
@@ -125,24 +131,79 @@ fun DetailTopAppBar(
     )
 }
 
+
 @ExperimentalMaterialApi
 @Composable
-fun CreateTopAppBar(
+fun CreateImageTopAppBar(
     scaffoldState: BackdropScaffoldState,
     scope: CoroutineScope,
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
-    val rec by viewModel._recipe.observeAsState()
+    BaseTopAppBar(
+        onBack = { navController.navigate(Screen.Home.route) },
+        onSave = {  }
+    )
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun CreateUrlTopAppBar(
+    scaffoldState: BackdropScaffoldState,
+    scope: CoroutineScope,
+    navController: NavController,
+    viewModel: RecipeViewModel
+) {
+    val url by viewModel.url.observeAsState()
+    BaseTopAppBar(
+        onBack = { navController.navigate(Screen.Home.route) },
+        onSave = {
+            if (!url.isNullOrEmpty()) {
+                viewModel.createRecipe(url!!)
+                navController.navigate(Screen.Home.route)
+            } else {
+                scope.launch {
+                    scaffoldState.snackbarHostState
+                        .showSnackbar("Ange en länk till ett recept!")
+                }
+            }
+        }
+    )
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun EditTopAppBar(
+    scaffoldState: BackdropScaffoldState,
+    scope: CoroutineScope,
+    navController: NavController,
+    viewModel: RecipeViewModel
+) {
+    val currentRecipe by viewModel.recipe.observeAsState()
+    BaseTopAppBar(
+        onBack = { navController.navigate(Screen.Home.route) },
+        onSave = {
+            currentRecipe?.let { viewModel.updateRecipe(it) }
+            navController.navigate(Screen.Home.route)
+        }
+    )
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun BaseTopAppBar(
+    onBack: () -> Unit,
+    onSave: () -> Unit
+) {
     TopAppBar(
         title = {  },
         navigationIcon = {
-            IconButton(onClick = { navController.navigate(Screen.Home.route) }) {
+            IconButton(onClick = onBack) {
                 Icon(painter = painterResource(id = R.drawable.ic_fluent_arrow_reply_24_regular), contentDescription = null)
             }
         },
         actions = {
-            IconButton(onClick = { /* TODO: Save the recipe and navigate back (and maybe display a snackbar) */ }) {
+            IconButton(onClick = onSave) {
                 Icon(painter = painterResource(id = R.drawable.ic_fluent_document_checkmark_24_regular), contentDescription = null)
             }
         },

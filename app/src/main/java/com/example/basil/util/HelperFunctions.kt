@@ -1,5 +1,6 @@
 package com.example.basil.util
 
+import android.util.Log
 import java.net.URI
 import java.net.URISyntaxException
 import java.time.temporal.ChronoUnit
@@ -19,20 +20,36 @@ fun extractNumbers(string: String): String {
 }
 
 fun getHoursFromDuration(s: String): Int {
-    val sNew = s.replace(Regex("Y.*D"), "D")
-    return (java.time.Duration.parse(sNew).toHours() % 24L).toInt()
+    return try {
+        val sNew = s.replace(Regex("Y.*D"), "D")
+        (java.time.Duration.parse(sNew).toHours() % 24L).toInt()
+    } catch (e: Exception) {
+        Log.e("getHoursFromDuration", e.message.toString())
+        0
+    }
+
 }
 
 fun getMinutesFromDuration(s: String): Int {
-    val sNew = s.replace(Regex("Y.*D"), "D")
-    return (java.time.Duration.parse(sNew).toMinutes() % 60L).toInt()
+    return try {
+        val sNew = s.replace(Regex("Y.*D"), "D")
+        (java.time.Duration.parse(sNew).toMinutes() % 60L).toInt()
+    } catch (e: Exception) {
+        Log.e("getMinutesFromDuration", e.message.toString())
+        0
+    }
+
 }
 
 fun humanReadableDuration(s: String): String {
-    val sNew = s.replace(Regex("Y.*D"), "D")
-    val time = java.time.Duration.parse(sNew)
-    val hours = time.toHours() % 24L
-    val minutes = time.toMinutes() % 60L
-    val formattedString = "$hours h $minutes min"
-    return formattedString
+    return try {
+        val sNew = s.replace(Regex("Y.*D"), "D")
+        val time = java.time.Duration.parse(sNew)
+        val hours = time.toHours() % 24L
+        val minutes = time.toMinutes() % 60L
+        "$hours h $minutes min"
+    } catch (e: Exception) {
+        Log.e("humanReadableDuration", e.message.toString())
+        "0 h 0 min"
+    }
 }

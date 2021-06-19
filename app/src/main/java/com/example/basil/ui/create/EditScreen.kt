@@ -70,8 +70,9 @@ fun EditScreen(
     var instructions by remember { mutableStateOf(recipe?.instructions?.toMutableStateList() ?: mutableStateListOf()) }
     var newInstruction by remember { mutableStateOf("") }
 
-    val rec by viewModel._recipe.observeAsState(
+    val updatingRecipe by viewModel.recipe.observeAsState(
         RecipeData(
+            id = recipe?.id ?: 0,
             url = source,
             imageUrl = image,
             recipeState = recipe?.recipeState ?: RecipeState.WEBVIEW,
@@ -79,14 +80,15 @@ fun EditScreen(
             description = description,
             ingredients = ingredients,
             instructions = instructions,
-            cookTime = "PT0M", // write function to get this
+            cookTime = recipe?.cookTime ?: "PT0M", // write function to get this
             yield = numberOfPortions.toString(),
             mealType = category,
             isLiked = recipe?.isLiked ?: false
         )
     )
 
-    val updatingRecipe by viewModel._recipe.observeAsState(
+
+    val updatingRecipe1 by viewModel.recipe.observeAsState(
         initial = recipe ?: RecipeData(
             url = "",
             imageUrl = "https://picsum.photos/600/600",
@@ -101,6 +103,7 @@ fun EditScreen(
             isLiked = false
         )
     )
+
 
     val openSheet: (BottomSheetScreens) -> Unit = {
         selectedBottomSheet = it

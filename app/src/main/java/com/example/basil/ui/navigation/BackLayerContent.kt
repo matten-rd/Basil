@@ -37,7 +37,7 @@ fun BasilBackLayer(
             modifier = Modifier.fillMaxWidth().clickable {
                 scope.launch {
                     scaffoldState.conceal()
-                    navController.navigate(Screen.Create.route)
+                    navController.navigate(Screen.CreateUrl.route)
                 }
             }
         ) {

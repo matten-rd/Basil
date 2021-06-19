@@ -12,6 +12,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -30,18 +31,19 @@ fun CreateRecipe(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
-    var url by remember { mutableStateOf("") }
+    //var url by remember { mutableStateOf("") }
+    val url by viewModel.url.observeAsState(initial = "")
     Column(modifier = Modifier.padding(16.dp)) {
         BasilTextField(
             value = url,
-            onValueChange = { url = it },
+            onValueChange = { viewModel.onUrlChange(it) },
             modifier = Modifier.fillMaxWidth(),
             placeholder = "Ange en länk till ett recept"
         )
         Button(
             onClick = {
                 if (url.isNotEmpty()) {
-                    saveAndNavigateBack(url, viewModel, navController)
+                    //saveAndNavigateBack(url, viewModel, navController)
                 }
             }
         ) {

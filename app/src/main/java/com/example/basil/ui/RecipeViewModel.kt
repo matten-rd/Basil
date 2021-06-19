@@ -29,26 +29,29 @@ class RecipeViewModel @Inject constructor(
         private const val URL7 = "https://www.coop.se/recept/grillade-kycklingklubbor"
     }
 
+    private val _url = MutableLiveData("")
+    val url: LiveData<String> = _url
 
-    val recipe = MutableLiveData<RecipeData>()
-    val _recipe: LiveData<RecipeData> = recipe
+    fun onUrlChange(newUrl: String) {
+        _url.value = newUrl
+    }
+
+
+    private val _recipe = MutableLiveData<RecipeData>()
+    val recipe: LiveData<RecipeData> = _recipe
 
     fun onRecipeChange(recipeData: RecipeData) {
-        recipe.value = recipeData
+        _recipe.value = recipeData
     }
 
-    fun loadRecipe() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val recipeData = parseURL(url = URL2)
-            recipe.postValue(recipeData)
-        }
-    }
 
     fun createRecipe(url: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val recipeD = parseURL(url)
-            recipe.postValue(recipeD)
+            val recipeData = parseURL(url)
+            _recipe.postValue(recipeData)
+            insertRecipe(recipeData)
         }
+        onUrlChange("")
     }
 
     val allRecipes = recipeDao.getRecipes().asLiveData()

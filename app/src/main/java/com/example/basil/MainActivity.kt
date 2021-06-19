@@ -95,7 +95,7 @@ fun LandingScreen(
         .background(color = MaterialTheme.colors.primary), contentAlignment = Alignment.Center) {
         val currentOnTimeout by rememberUpdatedState(newValue = onTimeOut)
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(true) {
             delay(SplashWaitTime)
             currentOnTimeout()
         }
@@ -129,15 +129,12 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
             when(currentRoute) {
                 Screen.Home.route -> HomeTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController)
                 Screen.Detail.route -> {
-                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
-                    DetailTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, recipe = recipe)
+                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe_detail")
+                    DetailTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, recipe = recipe, viewModel = recipeViewModel)
                 }
-                Screen.Create.route -> CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
-                Screen.CreateImage.route -> CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
-                Screen.Edit.route -> {
-                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
-                    CreateTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
-                }
+                Screen.CreateUrl.route -> CreateUrlTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
+                Screen.CreateImage.route -> CreateImageTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
+                Screen.Edit.route -> EditTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
 
                 else -> {  }
             }
@@ -149,13 +146,13 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
             NavHost(navController = navController, startDestination = Screen.Home.route) {
                 composable(Screen.Home.route) { HomeScreen(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.Detail.route) {
-                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
+                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe_detail")
                     DetailScreenRow(navController = navController, recipe = recipe)
                 }
-                composable(Screen.Create.route) { CreateRecipe(navController = navController, viewModel = recipeViewModel) }
+                composable(Screen.CreateUrl.route) { CreateRecipe(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.CreateImage.route) { CreateImageRecipe(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.Edit.route) {
-                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe")
+                    var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe_edit")
                     EditScreen(navController = navController, recipe = recipe, viewModel = recipeViewModel)
                 }
 
