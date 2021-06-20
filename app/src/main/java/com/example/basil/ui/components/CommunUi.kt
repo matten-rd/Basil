@@ -3,6 +3,8 @@ package com.example.basil.ui.components
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -11,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -19,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.basil.R
+import com.example.basil.ui.create.EditButton
 
 /**
  * Standard spacing that is used for most of the Basil app.
@@ -116,5 +120,21 @@ fun BasilTextField(
             trailingIcon()
         }
     }
+}
+
+@Composable
+fun TextToggleButton(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    text: String
+) {
+    Text(
+        text = text,
+        modifier = modifier
+            .toggleable(value = checked, onValueChange = onCheckedChange)
+            .padding(ButtonDefaults.TextButtonContentPadding),
+        style = MaterialTheme.typography.button
+    )
 }
 

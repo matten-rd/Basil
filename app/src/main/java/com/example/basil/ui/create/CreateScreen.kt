@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.basil.R
 import com.example.basil.data.RecipeData
+import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.BasilSpacer
 import com.example.basil.ui.components.BasilTextField
@@ -84,15 +85,37 @@ fun CreateImageRecipe(
     val closeSheet: () -> Unit = {
         scope.launch { sheetState.hide() }
     }
+
+    val updatingRecipe by viewModel.recipe.observeAsState(
+        RecipeData(
+            url = "",
+            imageUrl = thumbnailImage,
+            recipeImageUrl = recipeImage,
+            recipeState = RecipeState.IMAGE,
+            title = title,
+            description = description,
+            ingredients = listOf(),
+            instructions = listOf(),
+            cookTime = "PT0M",
+            mealType = category,
+            yield = numberOfPortions.toString(),
+            isLiked = false
+        )
+    )
+
     val launcherThumbnail = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null)
+        if (uri != null) {
             thumbnailImage = uri.toString()
+            viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = thumbnailImage))
+        }
+
     }
     val launcherRecipeImage = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null)
+        if (uri != null) {
             recipeImage = uri.toString()
+            viewModel.onRecipeChange(updatingRecipe.copy(recipeImageUrl = recipeImage))
+        }
     }
-
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
@@ -120,13 +143,13 @@ fun CreateImageRecipe(
         ) {
             CreateImageRecipeContent(
                 openSheet = openSheet,
-                title = title,
-                setTitle = { title = it },
+                title = updatingRecipe.title,
+                setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it)) },
                 description = description,
                 setDescription = { description = it },
-                thumbnailImage = thumbnailImage,
+                thumbnailImage = updatingRecipe.imageUrl,
                 setThumbnailImage = { launcherThumbnail.launch(arrayOf("image/*")) },
-                recipeImage = recipeImage,
+                recipeImage = updatingRecipe.recipeImageUrl,
                 setRecipeImage = { launcherRecipeImage.launch(arrayOf("image/*")) },
                 portions = numberOfPortions.toString(),
                 time = "$hour h $minute min",

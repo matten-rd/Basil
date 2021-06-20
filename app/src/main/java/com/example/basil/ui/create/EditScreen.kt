@@ -36,6 +36,7 @@ fun EditScreen(
     viewModel: RecipeViewModel
 ) {
     if (recipe != null) {
+        viewModel.onRecipeChange(recipe)
         EditScreen1(navController = navController, recipe = recipe, viewModel = viewModel)
     } else {
         ErrorScreen(errorMessage = "Oops! Något gick fel! Försök igen snart!")
@@ -92,7 +93,7 @@ fun EditScreen1(
             isLiked = recipe.isLiked
         )
     )
-    // TODO: Reset the viewModel recipe to original if the back button is pressed
+
     val updatingRecipe by viewModel.recipe.observeAsState(initial = recipe)
 
     val openSheet: (BottomSheetScreens) -> Unit = {
@@ -108,7 +109,7 @@ fun EditScreen1(
             viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = image))
         }
     }
-
+    // TODO: Add functionality to be able to edit and delete current ingredients and instructions
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
@@ -243,8 +244,8 @@ fun EditContent(
 
 
 @Composable
-fun SubHeader(subheader: String) {
-    Text(text = subheader, style = MaterialTheme.typography.h5)
+fun SubHeader(subheader: String, modifier: Modifier = Modifier) {
+    Text(text = subheader, style = MaterialTheme.typography.h5, modifier = modifier)
 }
 
 @Composable
@@ -320,12 +321,14 @@ fun EditIngredients(
     newIngredient: String,
     setNewIngredient: (String) -> Unit
 ) {
+    var checked by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            SubHeader(subheader = "Ingredienser")
-            EditButton(
-                text = "REDIGERA",
-                onClick = { /*TODO: Start editing*/ }
+            SubHeader(subheader = "Ingredienser", modifier = Modifier.weight(1f))
+            TextToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                text = if (checked) "KLAR" else "REDIGERA"
             )
         }
         ingredients.forEach { ingredient ->
@@ -355,12 +358,14 @@ fun EditInstructions(
     newInstruction: String,
     setNewInstruction: (String) -> Unit
 ) {
+    var checked by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             SubHeader(subheader = "Instruktioner")
-            EditButton(
-                text = "REDIGERA",
-                onClick = { /*TODO: Start editing*/ }
+            TextToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                text = if (checked) "KLAR" else "REDIGERA"
             )
         }
         instructions.forEachIndexed { index, instruction ->

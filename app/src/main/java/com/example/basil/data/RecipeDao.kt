@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RecipeDao {
 
-    @Query("SELECT * FROM recipe_table")
+    @Query("SELECT * FROM recipe_table ORDER BY isLiked DESC, title")
     fun getRecipes(): Flow<List<RecipeData>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -15,13 +15,56 @@ import androidx.core.content.ContextCompat.startActivity
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.core.content.ContextCompat
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.util.isValidUrl
 
+
+@Composable
+fun BaseTopAppBar(
+    title: @Composable () -> Unit = {},
+    navigationIcon: @Composable () -> Unit,
+    actions: @Composable (RowScope.() -> Unit) = {},
+    backgroundColor: Color = MaterialTheme.colors.background,
+    contentColor: Color = MaterialTheme.colors.primary,
+    elevation: Dp = 0.dp
+) {
+    TopAppBar(
+        title = title,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        backgroundColor = backgroundColor,
+        contentColor = contentColor,
+        elevation = elevation
+    )
+}
+
+
+@ExperimentalMaterialApi
+@Composable
+fun CreateBaseTopAppBar(
+    onBack: () -> Unit,
+    onSave: () -> Unit
+) {
+    BaseTopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(painter = painterResource(id = R.drawable.ic_fluent_arrow_reply_24_regular), contentDescription = null)
+            }
+        },
+        actions = {
+            IconButton(onClick = onSave) {
+                Icon(painter = painterResource(id = R.drawable.ic_fluent_document_checkmark_24_regular), contentDescription = null)
+            }
+        }
+    )
+}
 
 @ExperimentalMaterialApi
 @Composable
@@ -30,8 +73,7 @@ fun HomeTopAppBar(
     scope: CoroutineScope,
     navController: NavController
 ) {
-    TopAppBar(
-        title = {  },
+    BaseTopAppBar(
         navigationIcon = {
             if (scaffoldState.isConcealed) {
                 IconButton(onClick = { scope.launch { scaffoldState.reveal() } }) {
@@ -55,10 +97,7 @@ fun HomeTopAppBar(
             ) {
                 Icon(painter = painterResource(id = R.drawable.ic_fluent_filter_24_regular), contentDescription = null)
             }
-        },
-        backgroundColor = MaterialTheme.colors.background,
-        contentColor = MaterialTheme.colors.primary,
-        elevation = 0.dp
+        }
     )
 }
 
@@ -72,25 +111,48 @@ fun DetailTopAppBar(
     recipe: RecipeData?,
     viewModel: RecipeViewModel
 ) {
+    if (recipe != null) {
+        viewModel.onRecipeChange(recipe)
+        DetailTopAppBarContent(
+            scaffoldState = scaffoldState,
+            scope = scope,
+            navController = navController,
+            recipe = recipe,
+            viewModel = viewModel
+        )
+    } else {
+        ErrorTopAppBar(navController = navController)
+    }
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun DetailTopAppBarContent(
+    scaffoldState: BackdropScaffoldState,
+    scope: CoroutineScope,
+    navController: NavController,
+    recipe: RecipeData,
+    viewModel: RecipeViewModel
+) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val isValidUrl = isValidUrl(recipe?.url)
+    val isValidUrl = isValidUrl(recipe.url)
 
     val intent = remember {
-        Intent(Intent.ACTION_VIEW, Uri.parse(recipe?.url ?: ""))
+        Intent(Intent.ACTION_VIEW, Uri.parse(recipe.url))
     }
-    TopAppBar(
-        title = {  },
+
+    val updatingRecipe by viewModel.recipe.observeAsState(initial = recipe)
+
+    BaseTopAppBar(
         navigationIcon = {
             IconButton(onClick = { navController.navigate(Screen.Home.route) }) {
                 Icon(painter = painterResource(id = R.drawable.ic_fluent_arrow_reply_24_regular), contentDescription = null)
             }
         },
         actions = {
-            // FIXME: This liked state should be taken from recipeData and updated in the DB
-            var liked by remember { mutableStateOf(false) }
-            IconButton(onClick = { liked = !liked }) {
-                if (liked)
+            IconButton(onClick = { viewModel.onLikeClick(updatingRecipe) }) {
+                if (updatingRecipe.isLiked)
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_heart_24_filled), contentDescription = null)
                 else
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_heart_24_regular), contentDescription = null)
@@ -127,19 +189,14 @@ fun DetailTopAppBar(
                     Text(text = "Redigera", modifier = Modifier.padding(12.dp, 0.dp), style = MaterialTheme.typography.body1)
                 }
                 DropdownMenuItem(onClick = {
-                    if (recipe != null) {
-                        viewModel.deleteRecipe(recipe)
-                        navController.navigate(Screen.Home.route)
-                    }
+                    viewModel.deleteRecipe(recipe)
+                    navController.navigate(Screen.Home.route)
                 }, modifier = Modifier.fillMaxWidth()) {
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_delete_24_regular), contentDescription = null, modifier = Modifier.padding(4.dp))
                     Text(text = "Radera", modifier = Modifier.padding(12.dp, 0.dp), style = MaterialTheme.typography.body1)
                 }
             }
-        },
-        backgroundColor = MaterialTheme.colors.background,
-        contentColor = MaterialTheme.colors.primary,
-        elevation = 0.dp
+        }
     )
 }
 
@@ -152,7 +209,7 @@ fun CreateImageTopAppBar(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
-    BaseTopAppBar(
+    CreateBaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
         onSave = { /*TODO: Check that everything is ok and the save*/ }
     )
@@ -167,7 +224,7 @@ fun CreateUrlTopAppBar(
     viewModel: RecipeViewModel
 ) {
     val url by viewModel.url.observeAsState()
-    BaseTopAppBar(
+    CreateBaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
         onSave = {
             if (!url.isNullOrEmpty() && isValidUrl(url)) {
@@ -194,7 +251,7 @@ fun EditTopAppBar(
     val currentRecipe by viewModel.recipe.observeAsState()
     val contentResolver = LocalContext.current.applicationContext.contentResolver
     val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-    BaseTopAppBar(
+    CreateBaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
         onSave = {
             currentRecipe?.let { viewModel.updateRecipe(it) }
@@ -204,26 +261,14 @@ fun EditTopAppBar(
     )
 }
 
-@ExperimentalMaterialApi
+
 @Composable
-fun BaseTopAppBar(
-    onBack: () -> Unit,
-    onSave: () -> Unit
-) {
-    TopAppBar(
-        title = {  },
+fun ErrorTopAppBar(navController: NavController) {
+    BaseTopAppBar(
         navigationIcon = {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = { navController.navigate(Screen.Home.route) }) {
                 Icon(painter = painterResource(id = R.drawable.ic_fluent_arrow_reply_24_regular), contentDescription = null)
             }
-        },
-        actions = {
-            IconButton(onClick = onSave) {
-                Icon(painter = painterResource(id = R.drawable.ic_fluent_document_checkmark_24_regular), contentDescription = null)
-            }
-        },
-        backgroundColor = MaterialTheme.colors.background,
-        contentColor = MaterialTheme.colors.primary,
-        elevation = 0.dp
+        }
     )
 }

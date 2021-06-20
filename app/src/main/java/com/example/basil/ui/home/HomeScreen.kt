@@ -37,8 +37,8 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
             letterSpacing = 8.sp
         )
 
-        recipesFromVM.value?.let { recipes1 ->
-            BasilLazyRow(recipes = recipes1, navController = navController)
+        recipesFromVM.value?.let { recipes ->
+            BasilLazyRow(recipes = recipes, navController = navController, viewModel = viewModel)
         }
     }
 }
@@ -49,7 +49,8 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
 fun BasilLazyRow(
     recipes: List<RecipeData>,
     modifier: Modifier = Modifier,
-    navController: NavController
+    navController: NavController,
+    viewModel: RecipeViewModel
 ) {
     Column(
         modifier = modifier
@@ -63,6 +64,7 @@ fun BasilLazyRow(
             recipes.forEach { recipe ->
                 BasilRecipeCard(
                     recipeData = recipe,
+                    viewModel = viewModel,
                     onClick = {
                         println(recipe.toString())
                         navController.currentBackStackEntry?.arguments?.putParcelable("recipe_detail", recipe)
@@ -78,6 +80,7 @@ fun BasilLazyRow(
 @Composable
 fun BasilRecipeCard(
     recipeData: RecipeData,
+    viewModel: RecipeViewModel,
     onClick: () -> Unit
 ) {
     Surface(
@@ -108,7 +111,6 @@ fun BasilRecipeCard(
             )
 
             // The like button sorta integrated in the image above
-            var liked by remember { mutableStateOf(recipeData.isLiked) }
             Box(modifier = Modifier
                 .background(
                     color = MaterialTheme.colors.background,
@@ -119,10 +121,8 @@ fun BasilRecipeCard(
                     centerAround(image.bottom)
                 }
             ) {
-                IconButton(
-                    onClick = { liked = !liked }
-                ) {
-                    if (liked)
+                IconButton(onClick = { viewModel.onLikeClick(recipeData) }) {
+                    if (recipeData.isLiked)
                         Icon(
                             painter = painterResource(id = R.drawable.ic_fluent_heart_24_filled),
                             contentDescription = null

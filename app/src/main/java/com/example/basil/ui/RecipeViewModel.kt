@@ -68,5 +68,11 @@ class RecipeViewModel @Inject constructor(
         recipeDao.delete(recipeData)
     }
 
+    fun onLikeClick(recipeData: RecipeData) = viewModelScope.launch {
+        recipeDao.update(recipeData.copy(isLiked = !recipeData.isLiked))
+        onRecipeChange(recipeData.copy(isLiked = !recipeData.isLiked))
+    }
+
+
 
 }
