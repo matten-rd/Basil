@@ -15,7 +15,7 @@ class RecipeViewModel @Inject constructor(
     private val recipeDao: RecipeDao
 ) : ViewModel() {
 
-    private val _isBasilGrid = MutableLiveData(true)
+    private val _isBasilGrid = MutableLiveData(false)
     val isBasilGrid: LiveData<Boolean> = _isBasilGrid
 
     fun onLayoutGridStateChange() {

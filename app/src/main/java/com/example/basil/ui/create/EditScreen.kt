@@ -2,9 +2,9 @@ package com.example.basil.ui.create
 
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -37,11 +37,12 @@ enum class BottomSheetScreens { CATEGORY, PORTIONS, TIME, SOURCE }
 fun EditScreen(
     navController: NavController,
     recipe: RecipeData?,
-    viewModel: RecipeViewModel
+    viewModel: RecipeViewModel,
+    scaffoldState: BackdropScaffoldState
 ) {
     if (recipe != null) {
         viewModel.onRecipeChange(recipe)
-        EditScreen1(navController = navController, recipe = recipe, viewModel = viewModel)
+        EditScreen1(navController = navController, recipe = recipe, viewModel = viewModel, scaffoldState = scaffoldState)
     } else {
         ErrorScreen(errorMessage = "Oops! Något gick fel! Försök igen snart!")
     }
@@ -53,7 +54,8 @@ fun EditScreen(
 fun EditScreen1(
     navController: NavController,
     recipe: RecipeData,
-    viewModel: RecipeViewModel
+    viewModel: RecipeViewModel,
+    scaffoldState: BackdropScaffoldState
 ) {
     var selectedBottomSheet by remember { mutableStateOf(BottomSheetScreens.PORTIONS) }
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
@@ -107,6 +109,36 @@ fun EditScreen1(
     }
     val closeSheet: () -> Unit = {
         scope.launch { sheetState.hide() }
+    }
+    val onShowIngredientSnackBar: (Int, String) -> Unit = { idx, s ->
+        scope.launch {
+            val snackbarResult = scaffoldState.snackbarHostState.showSnackbar(
+                message = "Ingrediens borttagen.",
+                actionLabel = "ÅNGRA",
+            )
+            when (snackbarResult) {
+                SnackbarResult.Dismissed -> Log.d("snackBarResult", "Dismissed")
+                SnackbarResult.ActionPerformed -> {
+                    ingredients.add(idx, s)
+                    viewModel.onRecipeChange(updatingRecipe.copy(ingredients = ingredients))
+                }
+            }
+        }
+    }
+    val onShowInstructionSnackBar: (Int, String) -> Unit = { idx, s ->
+        scope.launch {
+            val snackbarResult = scaffoldState.snackbarHostState.showSnackbar(
+                message = "Instruktionssteg borttaget.",
+                actionLabel = "ÅNGRA",
+            )
+            when (snackbarResult) {
+                SnackbarResult.Dismissed -> Log.d("snackBarResult", "Dismissed")
+                SnackbarResult.ActionPerformed -> {
+                    instructions.add(idx, s)
+                    viewModel.onRecipeChange(updatingRecipe.copy(instructions = instructions))
+                }
+            }
+        }
     }
     val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -201,7 +233,14 @@ fun EditScreen1(
                 category = updatingRecipe.mealType,
                 setCategory = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) },
                 numberOfPortions = updatingRecipe.yield,
-                time = humanReadableDuration(updatingRecipe.cookTime)
+                time = humanReadableDuration(updatingRecipe.cookTime),
+                onShowIngredientSnackbar = { idx, s ->
+                    onShowIngredientSnackBar(idx, s)
+                },
+                onShowInstructionSnackbar = { idx, s ->
+                    onShowInstructionSnackBar(idx, s)
+                }
+
             )
         }
     }
@@ -235,71 +274,48 @@ fun EditContent(
     category: String,
     setCategory: (String) -> Unit,
     numberOfPortions: String,
-    time: String
+    time: String,
+    onShowIngredientSnackbar: (Int, String) -> Unit,
+    onShowInstructionSnackbar: (Int, String) -> Unit
 ) {
-    EditTitle(title = title, setTitle = setTitle)
+    TextFieldWithHeader(header = "Titel", value = title, onValueChange = setTitle, placeholder = "Ange titel")
     BasilSpacer()
-    EditSource(source = source, onClick = { openSheet(BottomSheetScreens.SOURCE) })
+    TextAndButton(text = getDomainName(source), buttonText = "ÄNDRA KÄLLA", onClick = { openSheet(BottomSheetScreens.SOURCE) })
     BasilSpacer()
     EditImage(url = image, setImage = setImage)
     BasilSpacer()
-    EditDescription(description = description, setDescription = setDescription)
+    TextFieldWithHeader(header = "Beskrivning", value = description, onValueChange = setDescription, placeholder = "Ange beskrivning")
     BasilSpacer()
-    EditIngredients(ingredients = ingredients, addIngredient = addIngredient, deleteIngredient = deleteIngredient, newIngredient = newIngredient, setNewIngredient = setNewIngredient)
+    EditableList(
+        subHeader = "Ingredienser",
+        placeholder = "Lägg till en ingrediens",
+        list = ingredients,
+        addToList = addIngredient,
+        deleteFromList = deleteIngredient,
+        newValue = newIngredient,
+        setNewValue = setNewIngredient,
+        onShowSnackbar = onShowIngredientSnackbar,
+        listItems = { Text(text = it, modifier = Modifier.padding(vertical = 6.dp)) }
+    )
     BasilSpacer()
-    EditInstructions(instructions = instructions, addInstruction = addInstruction, deleteInstruction = deleteInstruction, newInstruction = newInstruction, setNewInstruction = setNewInstruction)
+    EditableList(
+        subHeader = "Instruktioner",
+        placeholder = "Lägg till ett steg",
+        list = instructions,
+        addToList = addInstruction,
+        deleteFromList = deleteInstruction,
+        newValue = newInstruction,
+        setNewValue = setNewInstruction,
+        onShowSnackbar = onShowInstructionSnackbar,
+        listHeaders = { Text(text = "Steg ${it+1}", modifier = Modifier.padding(top = 4.dp)) },
+        listItems = { BasilTextField(value = it, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth()) }
+    )
     BasilSpacer()
-    EditPortions(portions = numberOfPortions, onClick = { openSheet(BottomSheetScreens.PORTIONS) })
+    TextAndButton(text = "$numberOfPortions Portioner", onClick = { openSheet(BottomSheetScreens.PORTIONS) })
     BasilSpacer()
-    EditTime(time = time, onClick = { openSheet(BottomSheetScreens.TIME) })
+    TextAndButton(text = time, onClick = { openSheet(BottomSheetScreens.TIME) })
     BasilSpacer()
     EditCategory(selected = category, setSelected = setCategory, onClick = { openSheet(BottomSheetScreens.CATEGORY) })
-}
-
-
-
-@Composable
-fun SubHeader(subheader: String, modifier: Modifier = Modifier) {
-    Text(text = subheader, style = MaterialTheme.typography.h5, modifier = modifier)
-}
-
-@Composable
-fun EditButton(
-    text: String,
-    onClick: () -> Unit
-) {
-    TextButton(onClick = onClick) {
-        Text(text = text)
-    }
-}
-
-@Composable
-fun EditTitle(
-    title: String,
-    setTitle: (String) -> Unit
-) {
-    Column {
-        SubHeader(subheader = "Titel")
-        BasilTextField(value = title, onValueChange = setTitle, placeholder = "Ange titel", modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-fun EditSource(
-    source: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = getDomainName(source))
-        EditButton(
-            text = "ÄNDRA KÄLLA",
-            onClick = onClick
-        )
-    }
 }
 
 @Composable
@@ -319,137 +335,19 @@ fun EditImage(
 }
 
 @Composable
-fun EditDescription(
-    description: String,
-    setDescription: (String) -> Unit
-) {
-    Column {
-        SubHeader(subheader = "Beskrivning")
-        BasilTextField(value = description, onValueChange = setDescription, placeholder = "Ange beskriving", modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@ExperimentalAnimationApi
-@Composable
-fun EditIngredients(
-    ingredients: List<String>,
-    addIngredient: () -> Unit,
-    deleteIngredient: (Int) -> Unit,
-    newIngredient: String,
-    setNewIngredient: (String) -> Unit
-) {
-    var checked by remember { mutableStateOf(false) }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            SubHeader(subheader = "Ingredienser", modifier = Modifier.weight(1f))
-            TextToggleButton(
-                checked = checked,
-                onCheckedChange = { checked = it },
-                text = if (checked) "KLAR" else "REDIGERA"
-            )
-        }
-        AnimatedContent(targetState = checked) { isEdit ->
-            if (isEdit)
-                ContentEdit(list = ingredients, delete = deleteIngredient)
-            else
-                DisplayListOfString(list = ingredients) { _, ingredient ->
-                    Text(text = ingredient, modifier = Modifier.padding(vertical = 6.dp))
-                }
-        }
-        BasilSpacer()
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                BasilTextField(value = newIngredient, onValueChange = setNewIngredient, placeholder = "Lägg till en ingrediens", modifier = Modifier.weight(1f))
-                IconButton(onClick = addIngredient) {
-                    Icon(painter = painterResource(id = R.drawable.ic_fluent_add_24_regular), contentDescription = null)
-                }
-            }
-
-            EditButton(
-                text = "+ Rubrik",
-                onClick = { /*TODO: Add new header*/ }
-            )
-        }
-    }
-}
-
-@Composable
-fun DisplayListOfString(list: List<String>, content: @Composable (Int, String) -> Unit) {
-    Column {
-        list.forEachIndexed { idx, string ->
-            content(idx, string)
-        }
-    }
-}
-
-@ExperimentalAnimationApi
-@Composable
-fun EditInstructions(
-    instructions: List<String>,
-    addInstruction: () -> Unit,
-    deleteInstruction: (Int) -> Unit,
-    newInstruction: String,
-    setNewInstruction: (String) -> Unit
-) {
-    var checked by remember { mutableStateOf(false) }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            SubHeader(subheader = "Instruktioner")
-            TextToggleButton(
-                checked = checked,
-                onCheckedChange = { checked = it },
-                text = if (checked) "KLAR" else "REDIGERA"
-            )
-        }
-        AnimatedContent(targetState = checked) { isEdit ->
-            if (isEdit)
-                ContentEdit(list = instructions, delete = deleteInstruction, header = { Text(text = "Steg ${it+1}", modifier = Modifier.padding(top = 4.dp)) })
-            else
-                DisplayListOfString(list = instructions) { idx, instruction ->
-                    Text(text = "Steg ${idx+1}", modifier = Modifier.padding(top = 4.dp))
-                    BasilTextField(value = instruction, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
-                }
-        }
-        
-        BasilSpacer()
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                BasilTextField(value = newInstruction, onValueChange = setNewInstruction, placeholder = "Lägg till ett steg", modifier = Modifier.weight(1f))
-                IconButton(onClick = addInstruction) {
-                    Icon(painter = painterResource(id = R.drawable.ic_fluent_add_24_regular), contentDescription = null)
-                }
-            }
-            EditButton(
-                text = "+ Rubrik",
-                onClick = { /*TODO: Add new header*/ }
-            )
-        }
-    }
-}
-
-@Composable
-fun InstructionsContentFixed(
-    instructions: List<String>
-) {
-    Column() {
-        instructions.forEachIndexed { index, instruction ->
-            Text(text = "Steg ${index+1}", modifier = Modifier.padding(top = 4.dp))
-            BasilTextField(value = instruction, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
-        }
-    }
-
-}
-
-@Composable
 fun ContentEdit(
     list: List<String>,
     delete: (Int) -> Unit,
+    onShowSnackbar: (Int, String) -> Unit,
     header: @Composable (Int) -> Unit = {}
 ) {
     Column {
         list.forEachIndexed { index, item ->
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { delete(index) }) {
+                IconButton(onClick = {
+                    delete(index)
+                    onShowSnackbar(index, item)
+                }) {
                     Icon(painter = painterResource(id = R.drawable.ic_fluent_dismiss_circle_20_regular), contentDescription = null, tint = Orange800)
                 }
                 Column(Modifier.weight(1f)) {
@@ -458,35 +356,6 @@ fun ContentEdit(
                 }
             }
         }
-    }
-}
-
-
-@Composable
-fun EditPortions(
-    portions: String,
-    onClick: () -> Unit
-) {
-    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(text = "$portions Portioner")
-        EditButton(
-            text = "ÄNDRA",
-            onClick = onClick
-        )
-    }
-}
-
-@Composable
-fun EditTime(
-    time: String,
-    onClick: () -> Unit
-) {
-    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(text = time)
-        EditButton(
-            text = "ÄNDRA",
-            onClick = onClick
-        )
     }
 }
 
@@ -505,29 +374,6 @@ fun EditCategory(
             trailingIcon = { Icon(painter = painterResource(id = R.drawable.ic_fluent_chevron_up_down_24_regular), contentDescription = null) },
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Composable
-fun BottomSheetBase(
-    title: String,
-    subTitle: String,
-    buttonText: String,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(16.dp)) {
-        SubHeader(subheader = title)
-        BasilSpacer()
-        Text(text = subTitle, style = MaterialTheme.typography.body2)
-        BasilSpacer()
-        content()
-        BasilSpacer()
-        Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-            Text(text = buttonText)
-        }
     }
 }
 

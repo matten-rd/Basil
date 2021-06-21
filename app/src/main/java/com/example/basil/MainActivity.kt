@@ -161,7 +161,7 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
                 composable(Screen.CreateImage.route) { CreateImageRecipe(navController = navController, viewModel = recipeViewModel) }
                 composable(Screen.Edit.route) {
                     var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe_edit")
-                    EditScreen(navController = navController, recipe = recipe, viewModel = recipeViewModel)
+                    EditScreen(navController = navController, recipe = recipe, viewModel = recipeViewModel, scaffoldState = scaffoldState)
                 }
 
             }

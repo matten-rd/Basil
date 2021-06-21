@@ -14,15 +14,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.basil.R
 import com.example.basil.data.RecipeData
 import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
-import com.example.basil.ui.components.BasilSpacer
-import com.example.basil.ui.components.BasilTextField
+import com.example.basil.ui.components.*
 import com.example.basil.ui.navigation.Screen
 import com.example.basil.util.getHoursFromDuration
 import com.example.basil.util.getMinutesFromDuration
@@ -125,7 +122,6 @@ fun CreateImageRecipe(
             thumbnailImage = uri.toString()
             viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = thumbnailImage))
         }
-
     }
     val launcherRecipeImage = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -194,7 +190,7 @@ fun CreateImageRecipeContent(
     category: String,
     setCategory: (String) -> Unit
 ) {
-    EditTitle(title = title, setTitle = setTitle)
+    TextFieldWithHeader(header = "Titel", value = title, onValueChange = setTitle, placeholder = "Ange titel")
     BasilSpacer()
     SubHeader(subheader = "Miniatyrbild")
     EditImage(url = thumbnailImage, setImage = setThumbnailImage)
@@ -202,11 +198,11 @@ fun CreateImageRecipeContent(
     SubHeader(subheader = "Receptbild")
     EditImage(url = recipeImage, setImage = setRecipeImage)
     BasilSpacer()
-    EditDescription(description = description, setDescription = setDescription)
+    TextFieldWithHeader(header = "Beskrivning", value = description, onValueChange = setDescription, placeholder = "Ange beskrivning")
     BasilSpacer()
-    EditPortions(portions = portions, onClick = { openSheet(BottomSheetScreens.PORTIONS) })
+    TextAndButton(text = "$portions Portioner", onClick = { openSheet(BottomSheetScreens.PORTIONS) })
     BasilSpacer()
-    EditTime(time = time, onClick = { openSheet(BottomSheetScreens.TIME) })
+    TextAndButton(text = time, onClick = { openSheet(BottomSheetScreens.TIME) })
     BasilSpacer()
     EditCategory(selected = category, setSelected = setCategory, onClick = { openSheet(BottomSheetScreens.CATEGORY) })
 }
