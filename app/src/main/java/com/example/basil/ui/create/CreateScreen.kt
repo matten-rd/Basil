@@ -103,6 +103,23 @@ fun CreateImageRecipe(
         )
     )
 
+    viewModel.onRecipeChange(recipeData =
+        RecipeData(
+            url = "",
+            imageUrl = thumbnailImage,
+            recipeImageUrl = recipeImage,
+            recipeState = RecipeState.IMAGE,
+            title = title,
+            description = description,
+            ingredients = listOf(),
+            instructions = listOf(),
+            cookTime = "PT0M",
+            mealType = category,
+            yield = numberOfPortions.toString(),
+            isLiked = false
+        )
+    )
+
     val launcherThumbnail = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             thumbnailImage = uri.toString()

@@ -4,6 +4,8 @@ package com.example.basil.ui.create
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -23,11 +25,13 @@ import com.example.basil.R
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
+import com.example.basil.ui.theme.Orange800
 import com.example.basil.util.*
 import kotlinx.coroutines.launch
 
 enum class BottomSheetScreens { CATEGORY, PORTIONS, TIME, SOURCE }
 
+@ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
 fun EditScreen(
@@ -43,6 +47,7 @@ fun EditScreen(
     }
 }
 
+@ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
 fun EditScreen1(
@@ -109,7 +114,6 @@ fun EditScreen1(
             viewModel.onRecipeChange(updatingRecipe.copy(imageUrl = image))
         }
     }
-    // TODO: Add functionality to be able to edit and delete current ingredients and instructions
 
     ModalBottomSheetLayout(
         sheetState = sheetState,
@@ -176,6 +180,10 @@ fun EditScreen1(
                     viewModel.onRecipeChange(updatingRecipe.copy(ingredients = ingredients))
                     newIngredient = ""
                                 },
+                deleteIngredient = {
+                    ingredients.removeAt(it)
+                    viewModel.onRecipeChange(updatingRecipe.copy(ingredients = ingredients))
+                                   },
                 newIngredient = newIngredient,
                 setNewIngredient = { newIngredient = it },
                 instructions = updatingRecipe.instructions,
@@ -184,6 +192,10 @@ fun EditScreen1(
                     viewModel.onRecipeChange(updatingRecipe.copy(instructions = instructions))
                     newInstruction = ""
                                  },
+                deleteInstruction = {
+                    instructions.removeAt(it)
+                    viewModel.onRecipeChange(updatingRecipe.copy(instructions = instructions))
+                                    },
                 newInstruction = newInstruction,
                 setNewInstruction = { newInstruction = it },
                 category = updatingRecipe.mealType,
@@ -196,6 +208,7 @@ fun EditScreen1(
 }
 
 
+@ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
 fun EditContent(
@@ -211,10 +224,12 @@ fun EditContent(
     setImage: () -> Unit,
     ingredients: List<String>,
     addIngredient: () -> Unit,
+    deleteIngredient: (Int) -> Unit,
     newIngredient: String,
     setNewIngredient: (String) -> Unit,
     instructions: List<String>,
     addInstruction: () -> Unit,
+    deleteInstruction: (Int) -> Unit,
     newInstruction: String,
     setNewInstruction: (String) -> Unit,
     category: String,
@@ -230,9 +245,9 @@ fun EditContent(
     BasilSpacer()
     EditDescription(description = description, setDescription = setDescription)
     BasilSpacer()
-    EditIngredients(ingredients = ingredients, addIngredient = addIngredient, newIngredient = newIngredient, setNewIngredient = setNewIngredient)
+    EditIngredients(ingredients = ingredients, addIngredient = addIngredient, deleteIngredient = deleteIngredient, newIngredient = newIngredient, setNewIngredient = setNewIngredient)
     BasilSpacer()
-    EditInstructions(instructions = instructions, addInstruction = addInstruction, newInstruction = newInstruction, setNewInstruction = setNewInstruction)
+    EditInstructions(instructions = instructions, addInstruction = addInstruction, deleteInstruction = deleteInstruction, newInstruction = newInstruction, setNewInstruction = setNewInstruction)
     BasilSpacer()
     EditPortions(portions = numberOfPortions, onClick = { openSheet(BottomSheetScreens.PORTIONS) })
     BasilSpacer()
@@ -314,10 +329,12 @@ fun EditDescription(
     }
 }
 
+@ExperimentalAnimationApi
 @Composable
 fun EditIngredients(
     ingredients: List<String>,
     addIngredient: () -> Unit,
+    deleteIngredient: (Int) -> Unit,
     newIngredient: String,
     setNewIngredient: (String) -> Unit
 ) {
@@ -331,8 +348,13 @@ fun EditIngredients(
                 text = if (checked) "KLAR" else "REDIGERA"
             )
         }
-        ingredients.forEach { ingredient ->
-            Text(text = ingredient, modifier = Modifier.padding(vertical = 6.dp))
+        AnimatedContent(targetState = checked) { isEdit ->
+            if (isEdit)
+                ContentEdit(list = ingredients, delete = deleteIngredient)
+            else
+                DisplayListOfString(list = ingredients) { _, ingredient ->
+                    Text(text = ingredient, modifier = Modifier.padding(vertical = 6.dp))
+                }
         }
         BasilSpacer()
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -352,9 +374,20 @@ fun EditIngredients(
 }
 
 @Composable
+fun DisplayListOfString(list: List<String>, content: @Composable (Int, String) -> Unit) {
+    Column {
+        list.forEachIndexed { idx, string ->
+            content(idx, string)
+        }
+    }
+}
+
+@ExperimentalAnimationApi
+@Composable
 fun EditInstructions(
     instructions: List<String>,
     addInstruction: () -> Unit,
+    deleteInstruction: (Int) -> Unit,
     newInstruction: String,
     setNewInstruction: (String) -> Unit
 ) {
@@ -368,10 +401,16 @@ fun EditInstructions(
                 text = if (checked) "KLAR" else "REDIGERA"
             )
         }
-        instructions.forEachIndexed { index, instruction ->
-            Text(text = "Steg ${index+1}", modifier = Modifier.padding(top = 4.dp))
-            BasilTextField(value = instruction, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
+        AnimatedContent(targetState = checked) { isEdit ->
+            if (isEdit)
+                ContentEdit(list = instructions, delete = deleteInstruction, header = { Text(text = "Steg ${it+1}", modifier = Modifier.padding(top = 4.dp)) })
+            else
+                DisplayListOfString(list = instructions) { idx, instruction ->
+                    Text(text = "Steg ${idx+1}", modifier = Modifier.padding(top = 4.dp))
+                    BasilTextField(value = instruction, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
+                }
         }
+        
         BasilSpacer()
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -387,6 +426,41 @@ fun EditInstructions(
         }
     }
 }
+
+@Composable
+fun InstructionsContentFixed(
+    instructions: List<String>
+) {
+    Column() {
+        instructions.forEachIndexed { index, instruction ->
+            Text(text = "Steg ${index+1}", modifier = Modifier.padding(top = 4.dp))
+            BasilTextField(value = instruction, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
+        }
+    }
+
+}
+
+@Composable
+fun ContentEdit(
+    list: List<String>,
+    delete: (Int) -> Unit,
+    header: @Composable (Int) -> Unit = {}
+) {
+    Column {
+        list.forEachIndexed { index, item ->
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { delete(index) }) {
+                    Icon(painter = painterResource(id = R.drawable.ic_fluent_dismiss_circle_20_regular), contentDescription = null, tint = Orange800)
+                }
+                Column(Modifier.weight(1f)) {
+                    header(index)
+                    BasilTextField(value = item, onValueChange = { /*TODO: Edit current item, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun EditPortions(

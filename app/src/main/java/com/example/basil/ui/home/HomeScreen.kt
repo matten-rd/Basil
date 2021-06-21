@@ -1,5 +1,7 @@
 package com.example.basil.ui.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +26,8 @@ import com.example.basil.ui.navigation.Screen
 import com.example.basil.ui.theme.Green500
 
 
+@ExperimentalAnimationApi
+@ExperimentalFoundationApi
 @ExperimentalMaterialApi
 @Composable
 fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
@@ -45,6 +49,8 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
 
 
 
+@ExperimentalAnimationApi
+@ExperimentalFoundationApi
 @Composable
 fun BasilLazyRow(
     recipes: List<RecipeData>,
@@ -52,25 +58,36 @@ fun BasilLazyRow(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
-    Column(
-        modifier = modifier
-            .verticalScroll(rememberScrollState())
-    ) {
-        HorizontalStaggeredGrid(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(8.dp)
-        ) {
-            recipes.forEach { recipe ->
-                BasilRecipeCard(
-                    recipeData = recipe,
-                    viewModel = viewModel,
-                    onClick = {
-                        println(recipe.toString())
-                        navController.currentBackStackEntry?.arguments?.putParcelable("recipe_detail", recipe)
-                        navController.navigate(Screen.Detail.route)
+    val isBasilGrid by viewModel.isBasilGrid.observeAsState()
+    AnimatedContent(targetState = isBasilGrid) {
+        if (it == false) {
+            VerticalGrid(recipes = recipes, viewModel = viewModel, navController = navController)
+
+        } else {
+            Column(
+                modifier = modifier
+                    .verticalScroll(rememberScrollState())
+            ) {
+                HorizontalStaggeredGrid(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(8.dp)
+                ) {
+                    recipes.forEach { recipe ->
+                        BasilRecipeCard(
+                            recipeData = recipe,
+                            viewModel = viewModel,
+                            onClick = {
+                                println(recipe.toString())
+                                navController.currentBackStackEntry?.arguments?.putParcelable(
+                                    "recipe_detail",
+                                    recipe
+                                )
+                                navController.navigate(Screen.Detail.route)
+                            }
+                        )
                     }
-                )
+                }
             }
         }
     }

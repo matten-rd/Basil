@@ -4,8 +4,10 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.*
 import androidx.compose.animation.core.Spring.StiffnessLow
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -37,6 +39,8 @@ import kotlinx.coroutines.delay
 class MainActivity : AppCompatActivity() {
     private val recipeViewModel: RecipeViewModel by viewModels()
 
+    @ExperimentalFoundationApi
+    @ExperimentalAnimationApi
     @ExperimentalMaterialApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+@ExperimentalFoundationApi
+@ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
 fun MainScreen(recipeViewModel: RecipeViewModel) {
@@ -104,6 +110,8 @@ fun LandingScreen(
 }
 
 
+@ExperimentalFoundationApi
+@ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
 fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
@@ -127,7 +135,7 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
         scaffoldState = scaffoldState,
         appBar = {
             when(currentRoute) {
-                Screen.Home.route -> HomeTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController)
+                Screen.Home.route -> HomeTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, viewModel = recipeViewModel)
                 Screen.Detail.route -> {
                     var recipe = navController.previousBackStackEntry?.arguments?.getParcelable<RecipeData>("recipe_detail")
                     DetailTopAppBar(scaffoldState = scaffoldState, scope = scope, navController = navController, recipe = recipe, viewModel = recipeViewModel)

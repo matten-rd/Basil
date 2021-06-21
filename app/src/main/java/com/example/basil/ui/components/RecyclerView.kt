@@ -1,9 +1,18 @@
 package com.example.basil.ui.components
 
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.GridCells
+import androidx.compose.foundation.lazy.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.navigation.NavController
+import com.example.basil.data.RecipeData
+import com.example.basil.ui.RecipeViewModel
+import com.example.basil.ui.home.BasilRecipeCard
+import com.example.basil.ui.navigation.Screen
 
 
 /**
@@ -54,6 +63,28 @@ fun HorizontalStaggeredGrid(
                     else -> placeable.width + 200
                 }
             }
+        }
+    }
+}
+
+
+@ExperimentalFoundationApi
+@Composable
+fun VerticalGrid(
+    recipes: List<RecipeData>,
+    viewModel: RecipeViewModel,
+    navController: NavController
+) {
+    LazyVerticalGrid(cells = GridCells.Fixed(count = 2)) {
+        items(recipes) { recipe ->
+            BasilRecipeCard(
+                recipeData = recipe,
+                viewModel = viewModel,
+                onClick = {
+                    navController.currentBackStackEntry?.arguments?.putParcelable("recipe_detail", recipe)
+                    navController.navigate(Screen.Detail.route)
+                }
+            )
         }
     }
 }
