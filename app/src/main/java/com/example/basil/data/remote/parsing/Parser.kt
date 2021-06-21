@@ -17,6 +17,7 @@ import java.lang.IllegalStateException
 import java.util.stream.Collectors
 import android.graphics.Bitmap
 import androidx.compose.runtime.produceState
+import androidx.core.text.HtmlCompat
 import com.example.basil.data.RecipeState
 import com.example.basil.util.*
 import com.gargoylesoftware.htmlunit.WebClient
@@ -198,7 +199,12 @@ private fun getDescription(obj: JsonObject): String {
 }
 
 private fun getIngredients(obj: JsonObject): List<String> {
-    return obj.get("recipeIngredient").asJsonArray.map { removeQuotes(it.toString()) }
+    return obj.get("recipeIngredient").asJsonArray.map {
+        removeQuotes(HtmlCompat
+            .fromHtml(it.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
+            .toString()
+        )
+    }.distinct()
 }
 
 private fun getYield(obj: JsonObject): String {
@@ -261,13 +267,11 @@ private fun getInstructions(obj: JsonObject): List<String> {
     // clean the instructions from possible html tags and quotes before returning
     return ins.map {
         removeQuotes(
-            Jsoup.parse(it).text()
-                .replace("""\n""", "")
-                .replace("&auml;", "ä")
-                .replace("&ouml;", "ö")
-                .replace("&aring;", "å")
+            HtmlCompat
+                .fromHtml(Jsoup.parse(it).text().replace("""\n""", "\n"), HtmlCompat.FROM_HTML_MODE_LEGACY)
+                .toString()
         )
-    }
+    }.distinct()
 }
 
 
