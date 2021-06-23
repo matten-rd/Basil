@@ -1,12 +1,17 @@
 package com.example.basil.ui.detail
 
 import android.view.ViewGroup
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.animation.Crossfade
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -18,9 +23,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
@@ -441,7 +448,13 @@ fun WebViewTab(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                webViewClient = WebViewClient()
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    loadsImagesAutomatically = true
+                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                }
+                webChromeClient = WebChromeClient()
                 loadUrl(recipe.url)
             }
         }, update = {
@@ -456,9 +469,29 @@ fun WebViewTab(
 fun ImageTab(
     url: String
 ) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val state = rememberTransformableState { zoomChange, offsetChange, rotationChange ->
+        scale *= zoomChange
+        offset += offsetChange
+    }
+
     NetWorkImage(
         url = url,
         contentDescription = null,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer(
+                scaleX = scale,
+                scaleY = scale,
+                translationX = offset.x,
+                translationY = offset.y
+            )
+            .transformable(state = state)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = { scale = 1f ; offset = Offset.Zero }
+                )
+            }
     )
 }

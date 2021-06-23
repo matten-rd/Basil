@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.basil.R
 import com.example.basil.data.RecipeData
+import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
 import com.example.basil.ui.theme.Orange800
@@ -37,7 +37,7 @@ enum class BottomSheetScreens { CATEGORY, PORTIONS, TIME, SOURCE }
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
-fun EditScreen(
+fun EditUrlScreen(
     navController: NavController,
     recipe: RecipeData?,
     viewModel: RecipeViewModel,
@@ -45,7 +45,21 @@ fun EditScreen(
 ) {
     if (recipe != null) {
         viewModel.onRecipeChange(recipe)
-        EditScreen1(navController = navController, recipe = recipe, viewModel = viewModel, scaffoldState = scaffoldState)
+
+        if (recipe.recipeState == RecipeState.IMAGE)
+            EditImageScreen(
+                navController = navController,
+                recipe = recipe,
+                viewModel = viewModel
+            )
+        else
+            EditUrlScreenState(
+                navController = navController,
+                recipe = recipe,
+                viewModel = viewModel,
+                scaffoldState = scaffoldState
+            )
+
     } else {
         ErrorScreen(errorMessage = "Oops! Något gick fel! Försök igen snart!")
     }
@@ -55,7 +69,7 @@ fun EditScreen(
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
-fun EditScreen1(
+fun EditUrlScreenState(
     navController: NavController,
     recipe: RecipeData,
     viewModel: RecipeViewModel,
@@ -64,46 +78,16 @@ fun EditScreen1(
     var selectedBottomSheet by remember { mutableStateOf(BottomSheetScreens.PORTIONS) }
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     val scope = rememberCoroutineScope()
-    // Category state
+
     val categoryOptions = listOf("Förrätt", "Huvudrätt", "Efterrätt", "Bakning")
-    var category by remember { mutableStateOf(recipe.mealType) }
-    // Portion state
-    val (numberOfPortions, setNumberOfPortions) = remember { mutableStateOf(recipe.yield.toIntOrNull() ?: 4) }
-    // Time state
-    val (hour, setHour) = remember { mutableStateOf(getHoursFromDuration(recipe.cookTime)) }
-    val (minute, setMinute) = remember { mutableStateOf(getMinutesFromDuration(recipe.cookTime)) }
-    // Title state
-    var title by remember { mutableStateOf(recipe.title) }
-    // Description state
-    var description by remember { mutableStateOf(recipe.description) }
-    // Source state
-    var source by remember { mutableStateOf(recipe.url) }
     // Image state
     var image by remember { mutableStateOf(recipe.imageUrl) }
     // Ingredients state
-    var ingredients by remember { mutableStateOf(recipe.ingredients.toMutableStateList()) }
+    val ingredients by remember { mutableStateOf(recipe.ingredients.toMutableStateList()) }
     var newIngredient by remember { mutableStateOf("") }
     // Ingredients state
-    var instructions by remember { mutableStateOf(recipe.instructions.toMutableStateList()) }
+    val instructions by remember { mutableStateOf(recipe.instructions.toMutableStateList()) }
     var newInstruction by remember { mutableStateOf("") }
-
-    val updatingRecipe1 by viewModel.recipe.observeAsState(
-        RecipeData(
-            id = recipe.id,
-            url = source,
-            imageUrl = image,
-            recipeImageUrl = recipe.recipeImageUrl,
-            recipeState = recipe.recipeState,
-            title = title,
-            description = description,
-            ingredients = ingredients,
-            instructions = instructions,
-            cookTime = recipe.cookTime,
-            yield = numberOfPortions.toString(),
-            mealType = category,
-            isLiked = recipe.isLiked
-        )
-    )
 
     val updatingRecipe by viewModel.recipe.observeAsState(initial = recipe)
 
@@ -199,7 +183,7 @@ fun EditScreen1(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            EditContent(
+            EditUrlScreenContent(
                 openSheet = openSheet,
                 title = updatingRecipe.title,
                 setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it)) },
@@ -253,7 +237,7 @@ fun EditScreen1(
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
-fun EditContent(
+fun EditUrlScreenContent(
     openSheet: (BottomSheetScreens) -> Unit,
     title: String,
     setTitle: (String) -> Unit,
@@ -377,131 +361,6 @@ fun EditCategory(
             trailingIcon = { Icon(painter = painterResource(id = R.drawable.ic_fluent_chevron_up_down_24_regular), contentDescription = null) },
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@ExperimentalComposeUiApi
-@Composable
-fun BottomSheetSource(
-    source: String,
-    setSource: (String) -> Unit,
-    closeSheet: () -> Unit
-) {
-    BottomSheetBase(
-        title = "Receptkälla",
-        subTitle = "Ändra receptets källa",
-        buttonText = "Spara",
-        onClick = closeSheet
-    ) {
-        BasilTextField(
-            value = source,
-            onValueChange = setSource,
-            placeholder = "Ange ny länk",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
-        )
-    }
-}
-
-@Composable
-fun BottomSheetPortions(
-    range: IntRange,
-    selected: Int,
-    setSelected: (Int) -> Unit,
-    closeSheet: () -> Unit
-) {
-    BottomSheetBase(
-        title = "Portioner",
-        subTitle = "Välj antal portioner",
-        buttonText = "Spara",
-        onClick = closeSheet
-    ) {
-        NumberPicker(
-            state = remember { mutableStateOf(selected) },
-            range = range,
-            modifier = Modifier.fillMaxWidth(),
-            onStateChanged = setSelected
-        )
-    }
-}
-
-@Composable
-fun BottomSheetTime(
-    hourRange: IntRange,
-    selectedHour: Int,
-    setSelectedHour: (Int) -> Unit,
-    minutesRange: IntRange,
-    selectedMinute: Int,
-    setSelectedMinute: (Int) -> Unit,
-    closeSheet: () -> Unit
-) {
-    BottomSheetBase(
-        title = "Tid",
-        subTitle = "Hur lång tid tar det att laga?",
-        buttonText = "Spara",
-        onClick = closeSheet
-    ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "Timmar")
-                NumberPicker(
-                    state = remember { mutableStateOf(selectedHour) },
-                    range = hourRange,
-                    modifier = Modifier.fillMaxWidth(),
-                    onStateChanged = setSelectedHour
-                )
-            }
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "Minuter")
-                NumberPicker(
-                    state = remember { mutableStateOf(selectedMinute) },
-                    range = minutesRange,
-                    modifier = Modifier.fillMaxWidth(),
-                    onStateChanged = setSelectedMinute
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun BottomSheetCategory(
-    options: List<String>,
-    selected: String,
-    setSelected: (String) -> Unit,
-    closeSheet: () -> Unit
-) {
-    BottomSheetBase(
-        title = "Kategori",
-        subTitle = "Välj en kategori för det här receptet",
-        buttonText = "Spara",
-        onClick = closeSheet
-    ) {
-        Column {
-            options.forEach { text ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = (text == selected),
-                            onClick = { setSelected(text) }
-                        )
-                        .padding(vertical = 12.dp)
-                ) {
-                    RadioButton(
-                        selected = (text == selected),
-                        onClick = { setSelected(text) }
-                    )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.body1,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
-        }
     }
 }
 

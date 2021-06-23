@@ -21,7 +21,6 @@ import com.example.basil.data.RecipeData
 import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
-import com.example.basil.ui.navigation.Screen
 import com.example.basil.util.getDurationFromHourAndMinute
 import com.example.basil.util.getHoursFromDuration
 import com.example.basil.util.getMinutesFromDuration
@@ -30,7 +29,7 @@ import kotlinx.coroutines.launch
 
 @ExperimentalComposeUiApi
 @Composable
-fun CreateRecipe(
+fun CreateUrlRecipe(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
@@ -53,6 +52,7 @@ fun CreateImageRecipe(
     viewModel: RecipeViewModel
 ) {
     val categoryOptions = listOf("Förrätt", "Huvudrätt", "Efterrätt", "Bakning")
+    // TODO: Use placeholders for images instead
     val initialRecipe = RecipeData(
         url = "",
         imageUrl = "https://picsum.photos/600/600",
@@ -69,7 +69,7 @@ fun CreateImageRecipe(
     )
     viewModel.onRecipeChange(initialRecipe)
 
-    CreateImageRecipe1(
+    CreateImageRecipeState(
         navController = navController,
         viewModel = viewModel,
         initialRecipe = initialRecipe,
@@ -80,7 +80,7 @@ fun CreateImageRecipe(
 @ExperimentalComposeUiApi
 @ExperimentalMaterialApi
 @Composable
-fun CreateImageRecipe1(
+fun CreateImageRecipeState(
     navController: NavController,
     viewModel: RecipeViewModel,
     initialRecipe: RecipeData,
@@ -90,7 +90,7 @@ fun CreateImageRecipe1(
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     val scope = rememberCoroutineScope()
 
-    // Image state TODO: Use placeholders instead
+    // Image state
     var thumbnailImage by remember { mutableStateOf(initialRecipe.imageUrl) }
     var recipeImage by remember { mutableStateOf(initialRecipe.recipeImageUrl) }
 

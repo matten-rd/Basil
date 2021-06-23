@@ -266,30 +266,5 @@ fun TextFieldWithHeader(
     }
 }
 
-/**
- * The base for how a Basil bottom sheet looks.
- */
-@Composable
-fun BottomSheetBase(
-    title: String,
-    subTitle: String,
-    buttonText: String,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(16.dp)) {
-        SubHeader(subheader = title)
-        BasilSpacer()
-        Text(text = subTitle, style = MaterialTheme.typography.body2)
-        BasilSpacer()
-        content()
-        BasilSpacer()
-        Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-            Text(text = buttonText)
-        }
-    }
-}
 
 
