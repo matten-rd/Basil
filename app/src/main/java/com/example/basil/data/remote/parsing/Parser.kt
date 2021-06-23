@@ -23,6 +23,7 @@ import com.example.basil.util.*
 import com.gargoylesoftware.htmlunit.WebClient
 import com.gargoylesoftware.htmlunit.html.HtmlPage
 import java.net.URL
+import kotlin.streams.toList
 import kotlin.time.ExperimentalTime
 
 
@@ -55,39 +56,54 @@ fun parseURL(url: String): RecipeData {
     try {
         val jsonLd = extractJsonLdParts(document)
         recipeData = getRecipeFromJsonld(jsonLd = jsonLd, img = images[0], url = url)
+
     } catch (e: Exception) {
         Log.d("json-ld", e.message.toString())
-        // Final way out - should later be moved to next try statement
-        recipeData = RecipeData(
-            url = url,
-            imageUrl = images[0],
-            recipeImageUrl = "",
-            recipeState = RecipeState.WEBVIEW,
-            title = title,
-            description = description,
-            ingredients = listOf(),
-            instructions = listOf(),
-            cookTime = "PT0M",
-            yield = "4",
-            mealType = "Huvudrätt",
-            isLiked = false
-        )
+        try {
+            recipeData = getRecipeFromTraversing(document = document, img = images[0])
+
+        } catch (e: Exception) {
+            Log.d("scraping", e.message.toString())
+            try {
+                recipeData = RecipeData(
+                    url = url,
+                    imageUrl = images[0],
+                    recipeImageUrl = "",
+                    recipeState = RecipeState.WEBVIEW,
+                    title = title,
+                    description = description,
+                    ingredients = listOf(),
+                    instructions = listOf(),
+                    cookTime = "PT0M",
+                    yield = "4",
+                    mealType = "Huvudrätt",
+                    isLiked = false
+                )
+
+            } catch (e: Exception) {
+                Log.d("webview", e.message.toString())
+                // Final way out
+                recipeData = RecipeData(
+                    url = url,
+                    imageUrl = "https://picsum.photos/600/600",
+                    recipeImageUrl = "",
+                    recipeState = RecipeState.WEBVIEW,
+                    title = "Ingen titel",
+                    description = "",
+                    ingredients = listOf(),
+                    instructions = listOf(),
+                    cookTime = "PT0M",
+                    yield = "4",
+                    mealType = "Huvudrätt",
+                    isLiked = false
+                )
+            }
+        }
     }
-
-    try {
-
-    } catch (e: Exception) {
-        Log.d("scraping", e.message.toString())
-        // Here place the final way out in the form of a webView recipe
-    }
-
-    //traverseDocument(document)
-    //recTraverse(document)
 
     // tasteline has some weird format on their json-ld - need some way to check if the data in json-ld is pretty
     // for ingredients is one idea to check if some of the contains numbers (if not it's ugly)
     // Should implement a way for the user to review the scraped data and if they are not satisfied then rerun it using another method.
-
 
     components.add(parseTitle(recipeData.title))
     components.add(parseDescription(recipeData.description))
@@ -159,17 +175,16 @@ fun extractJsonLdParts(document: Document): JsonObject {
                 else -> jsonElem.asJsonObject
             }
         }
-
     }
 
     return obj
 }
 
 private fun getImages(document: Document): List<String> {
-    val media = document.select("[src]")
+    val media = document.select("[src]").distinctBy { it.attr("abs:src").toString() } // remove duplicates
     val mediaLinks = mutableListOf<String>()
     for (src in media) {
-        val isValidImage = src.normalName().equals("img") && !src.attr("abs:src").toString().endsWith("svg") && src.attr("abs:src").toString().isNotEmpty()
+        val isValidImage = src.normalName().equals("img") && isUrlImage(src.attr("abs:src").toString())
         if (isValidImage) {
             println(" * ${src.tagName()}: <${src.attr("abs:src")}>")
             mediaLinks.add(src.attr("abs:src").toString())
@@ -279,6 +294,30 @@ private fun getInstructions(obj: JsonObject): List<String> {
  * Get the recipe by traversing the HTML.
  */
 
+private fun getRecipeFromTraversing(
+    document: Document,
+    img: String
+): RecipeData {
+    val title = traverseTitle(document)
+    val description = traverseDescription(document)
+    val (ingredients, instructions) = traverseIngredientsAndInstructions(document)
+
+    return  RecipeData(
+        url = "url",
+        imageUrl = img,
+        recipeImageUrl = "",
+        recipeState = RecipeState.SCRAPED,
+        title = title,
+        description = description,
+        ingredients = ingredients,
+        instructions = instructions,
+        cookTime = "PTOM",
+        yield = "4",
+        mealType = "Huvudrätt",
+        isLiked = false
+    )
+}
+
 private fun traverseTitle(document: Document): String {
     val title = document.select("meta[property='og:title'], meta[name='og:title']").attr("content").toString()
     return if (title.isNotEmpty()) title else document.title().toString()
@@ -288,7 +327,7 @@ private fun traverseDescription(document: Document): String {
     return document.select("meta[property='og:description'], meta[name='og:description']").attr("content").toString()
 }
 
-private fun recTraverse(document: Document) {
+private fun traverseIngredientsAndInstructions(document: Document): Pair<List<String>, List<String>> {
     /**
      * Idea:
      * If I find one node that is an ingredient then I will assume all of its siblings are as well.
@@ -299,40 +338,18 @@ private fun recTraverse(document: Document) {
      */
     val ingredientMap = mutableMapOf<Node, Double>()
     val instructionMap = mutableMapOf<Node, Double>()
-    // FIXME: One issue is that if one node is identified as an ingredient then its sibling will
-    //  most likely identify as an ingredient as well so I end up with "duplicate" lists of ingredients.
+
     document.traverse(object : NodeVisitor {
         override fun head(node: Node, depth: Int) {
-
 
             val nodeIngredientScore: Pair<Boolean, Double> = ScoreIngredient().isIngredient(node)
             if (nodeIngredientScore.first) {
                 ingredientMap.put(node, nodeIngredientScore.second)
-
-                val siblings = node.parent().childNodes() // just node.siblingNodes() does NOT contain current node
-                val ingredients = siblings.stream()
-                    .map { Jsoup.parse(it.outerHtml()).body().text() }
-                    .filter { it.isNotEmpty() }
-                    .collect(Collectors.toList())
-                if (ingredients.isNotEmpty()) {
-                    //println(siblings)
-                    println(ingredients)
-                }
             }
 
             val nodeInstructionScore: Pair<Boolean, Double> = ScoreInstruction().isInstruction(node)
             if (nodeInstructionScore.first) {
                 instructionMap.put(node, nodeInstructionScore.second)
-                val parent = node.parent()
-                val siblings = if (parent != null) parent.childNodes() else node.siblingNodes()
-
-                val instructions = siblings.stream()
-                    .map { Jsoup.parse(it.outerHtml()).body().text() }
-                    .filter { it.isNotEmpty() }
-                    .collect(Collectors.toList())
-                if (instructions.isNotEmpty()) {
-                    println(instructions)
-                }
             }
         }
         override fun tail(node: Node?, depth: Int) {
@@ -340,18 +357,54 @@ private fun recTraverse(document: Document) {
         }
     })
 
-    // FIXME: Finding the LCA is definitely unnecessary!
-    val bestIngredientNode = ingredientMap.maxByOrNull { it.value }?.key
-    val bestInstructionNode = instructionMap.maxByOrNull { it.value }?.key
-    println("HELLO")
-    val lcaNode = lowestCommonAncestor(bestIngredientNode, bestInstructionNode)
-    val res = checkFor(lcaNode)
-    println("RESULTS")
-    println(res.first)
-    println(res.second)
-    //traverseLca(lcaNode)
+    val (ingredientNode1, ingredientNode2) = findTwoUniqueEntries(ingredientMap)
+    val ingredientLcaNode = lowestCommonAncestor(ingredientNode1, ingredientNode2)
+    val ingredients = listFromNode(ingredientLcaNode)
 
+    val (instructionNode1, instructionNode2) = findTwoUniqueEntries(instructionMap)
+    val instructionLcaNode = lowestCommonAncestor(instructionNode1, instructionNode2)
+    val instructions = listFromNode(instructionLcaNode)
 
+    return Pair(ingredients, instructions)
+}
+
+private fun listFromNode(node: Node): List<String> {
+    /**
+     * Return a Nodes childnodes content as a list.
+     */
+    return node.childNodes()
+        .map { Jsoup.parse(it.outerHtml()).body().text() }
+        .filter { it.isNotEmpty() }
+}
+
+private fun findTwoUniqueEntries(map: MutableMap<Node, Double>): Pair<Node, Node> {
+    /**
+     * Returns the two highest scoring and unique nodes (based on their content).
+     */
+    val uniqueKeys = map.keys.distinctBy { Jsoup.parse(it.outerHtml()).body().text() }
+    val mapWithUniqueKeys = map.filterKeys { it in uniqueKeys }
+    val (_, secondHighestScore) = findTwoMaxNumbers(mapWithUniqueKeys.map { it.value })
+    val filteredMap = mapWithUniqueKeys
+        .filterValues { it >= secondHighestScore }.entries.stream().toList().take(2)
+
+    return Pair(filteredMap[0].key, filteredMap[1].key)
+}
+
+private fun findTwoMaxNumbers(listOfDouble: List<Double>): Pair<Double, Double> {
+    /**
+     * Returns the two largest Doubles from a list of Doubles.
+     */
+    var maxOne: Double = 0.0
+    var maxTwo: Double = 0.0
+    for (n in listOfDouble) {
+        if (maxOne < n) {
+            maxTwo = maxOne
+            maxOne = n
+        } else if (maxTwo < n) {
+            maxTwo = n
+        }
+    }
+    return Pair(maxOne, maxTwo)
 }
 
 private fun lowestCommonAncestor(node1: Node?, node2: Node?): Node {
@@ -386,120 +439,6 @@ private fun isAncestor(node1: Node?, node2: Node?): Boolean {
 
     return false
 }
-
-
-private fun checkFor(nodeToCheck: Node): Pair<List<String>, List<String>> {
-    var ingredientCheck = false
-    var noMatchYet = true
-
-    val ingredients = mutableListOf<String>()
-    val potentialIngredients = mutableListOf<String>()
-
-    val instructions = mutableListOf<String>()
-    val potentialInstructions = mutableListOf<String>()
-    // TODO: Only check the lowest nodes. They should not have any children.
-
-    nodeToCheck.traverse(object : NodeVisitor {
-        override fun head(node: Node, depth: Int) {
-            val nodeIngredientScore: Pair<Boolean, Double> = ScoreIngredient().isIngredient(node)
-            val nodeInstructionScore: Pair<Boolean, Double> = ScoreInstruction().isInstruction(node)
-            if (nodeIngredientScore.first && noMatchYet) {
-                ingredientCheck = true
-                noMatchYet = false
-            }
-
-            if (nodeIngredientScore.first && ingredientCheck) {
-                val ingredient = Jsoup.parse(node.outerHtml()).body().text().trim()
-                ingredients.addAll(potentialIngredients)
-                if (ingredient.isNotEmpty()) ingredients.add(ingredient)
-                potentialIngredients.clear()
-
-            } else if (nodeInstructionScore.first && !noMatchYet) {
-                ingredientCheck = false
-                val instruction = Jsoup.parse(node.outerHtml()).body().text().trim()
-                instructions.addAll(potentialInstructions)
-                if (instruction.isNotEmpty()) instructions.add(instruction)
-                potentialInstructions.clear()
-
-            } else if (!noMatchYet) {
-                if (ingredientCheck) {
-                    val potentialIngredient = Jsoup.parse(node.outerHtml()).body().text().trim()
-                    if (potentialIngredient.isNotEmpty()) potentialIngredients.add(
-                        potentialIngredient
-                    )
-                } else {
-                    val potentialInstruction =
-                        Jsoup.parse(node.outerHtml()).body().text().trim()
-                    if (potentialInstruction.isNotEmpty()) potentialInstructions.add(
-                        potentialInstruction
-                    )
-                }
-            }
-        }
-
-        override fun tail(node: Node, depth: Int) {
-
-        }
-    })
-    return Pair(ingredients, instructions)
-}
-
-// TODO: Check for duplicates in the ingredients and instructions
-// TODO: It might be fundamentally flawed to use nextSibling() as the children do not get checked (?)
-private fun ingredientCheck(node: Node): Pair<List<String>, List<String>> {
-    val ingredients = mutableListOf<String>()
-    val potentialIngredients = mutableListOf<String>()
-
-    val nodeIngredientScore: Pair<Boolean, Double> = ScoreIngredient().isIngredient(node)
-    val nodeInstructionScore: Pair<Boolean, Double> = ScoreInstruction().isInstruction(node)
-
-    if (nodeIngredientScore.first) {
-        val ingredient = Jsoup.parse(node.outerHtml()).body().text().trim()
-        ingredients.addAll(potentialIngredients)
-        if (ingredient.isNotEmpty()) ingredients.add(ingredient)
-        potentialIngredients.clear()
-
-        ingredientCheck(node.nextSibling())
-    } else if (nodeInstructionScore.first) {
-        // move on and pass the ingredients to instructionCheck()
-        return instructionCheck(node, ingredients)
-    } else {
-        val potentialIngredient = Jsoup.parse(node.outerHtml()).body().text().trim()
-        if (potentialIngredient.isNotEmpty()) potentialIngredients.add(potentialIngredient)
-
-        ingredientCheck(node.nextSibling())
-    }
-    // Should never be reached
-    return Pair(ingredients, emptyList())
-}
-
-private fun instructionCheck(node: Node, ingredients: List<String>): Pair<List<String>, List<String>> {
-    val instructions = mutableListOf<String>()
-    val potentialInstructions = mutableListOf<String>()
-
-    val nodeInstructionScore: Pair<Boolean, Double> = ScoreInstruction().isInstruction(node)
-
-    if (nodeInstructionScore.first) {
-        val instruction = Jsoup.parse(node.outerHtml()).body().text().trim()
-        instructions.addAll(potentialInstructions)
-        if (instruction.isNotEmpty()) instructions.add(instruction)
-        potentialInstructions.clear()
-
-        if (node.nextSibling() == null) {
-            return Pair(ingredients, instructions)
-        }
-        instructionCheck(node.nextSibling(), ingredients)
-    } else {
-        val potentialInstruction = Jsoup.parse(node.outerHtml()).body().text().trim()
-        if (potentialInstruction.isNotEmpty()) potentialInstructions.add(potentialInstruction)
-        if (node.nextSibling() == null) {
-            return Pair(ingredients, instructions)
-        }
-        instructionCheck(node.nextSibling(), ingredients)
-    }
-    return Pair(ingredients, instructions)
-}
-
 
 
 

@@ -51,7 +51,7 @@ class ScoreIngredient {
 
 
 
-        return Pair(normalizedScore > 0.70, normalizedScore)
+        return Pair(normalizedScore > 0.60, normalizedScore)
     }
 
     private fun nodeNameCheck(node: Node): Boolean {
@@ -81,7 +81,6 @@ class ScoreIngredient {
     private fun wordUsage(ingredient: String): Boolean {
         val foodWords = listOf("salt", "peppar", "vatten", "olja", "ris", "potatis", "pasta", "lax", "torsk", "kyckling")
         val words = ingredient.split(" ")
-        //println(words)
         var match = false
         val regex = Regex("\\b(?:${foodWords.joinToString(separator = "|")})\\b")
         words.forEach {
@@ -114,18 +113,20 @@ class ScoreInstruction {
         // The following are the scores of each check that will get added up to a totalScore
         val nodeNameScore = if (nodeNameCheck(node)) Scores.LOW.value else 0
         val attributeScore = if (attributeCheck(node)) Scores.MEDIUM.value else 0
-        val lengthScore = if (tooShort(instruction)) 0 else Scores.HIGH.value
+        val tooShortScore = if (tooShort(instruction)) 0 else Scores.HIGH.value
+        val tooLongScore = if (tooLong(instruction)) 0 else Scores.MEDIUM.value
         val sentenceScore = if (multipleSentences(instruction)) Scores.MEDIUM.value else 0
         val upperCaseScore = if (startsWithUpperCase(instruction)) Scores.LOW.value else 0
         val instructionWordScore = if (wordUsage(instruction)) Scores.HIGH.value else 0
         val punctuationScore = if (endInPunctuation(instruction)) Scores.LOW.value else 0
 
-        val possibleScore = Scores.LOW.value*3 + Scores.MEDIUM.value*2 + Scores.HIGH.value*2
+        val possibleScore = Scores.LOW.value*3 + Scores.MEDIUM.value*3 + Scores.HIGH.value*2
 
         val scoreList = listOf(
             nodeNameScore,
             attributeScore,
-            lengthScore,
+            tooShortScore,
+            tooLongScore,
             sentenceScore,
             upperCaseScore,
             instructionWordScore,
@@ -137,7 +138,7 @@ class ScoreInstruction {
         //print(scoreList)
         //println(normalizedScore)
 
-        return Pair(normalizedScore > 0.60, normalizedScore)
+        return Pair(normalizedScore > 0.70, normalizedScore)
     }
 
     private fun nodeNameCheck(node: Node): Boolean {
@@ -153,6 +154,10 @@ class ScoreInstruction {
 
     private fun tooShort(instruction: String): Boolean {
         return instruction.length <= 100 // if less than 100 chars -> true
+    }
+
+    private fun tooLong(instruction: String): Boolean {
+        return instruction.split(" ").size >= 1000 // if more than 1000 chars -> true
     }
 
     private fun multipleSentences(instruction: String): Boolean {
@@ -172,7 +177,7 @@ class ScoreInstruction {
     }
 
     private fun wordUsage(instruction: String): Boolean {
-        val instructionWords = listOf("skär", "hacka", "marinera", "häll", "koka", "stek", "blanda", "vispa", "tillsätt", "mixa", "sila", "skala", "sjud")
+        val instructionWords = listOf("skär", "hacka", "marinera", "koka", "stek", "blanda", "vispa", "tillsätt", "mixa", "sila", "skala", "sjud")
         val words = instruction.split(" ")
         var match = false
         val regex = Regex("\\b(?:${instructionWords.joinToString(separator = "|")})\\b", RegexOption.IGNORE_CASE)

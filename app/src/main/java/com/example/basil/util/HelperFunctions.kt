@@ -2,7 +2,11 @@ package com.example.basil.util
 
 import android.util.Log
 import android.util.Patterns
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
 import java.net.URI
+import java.net.URL
 
 
 fun getDomainName(url: String): String {
@@ -60,4 +64,26 @@ fun humanReadableDuration(s: String): String {
 fun getDurationFromHourAndMinute(hour: Int, minute: Int): String {
     val totalMinutes = hour*60 + minute
     return "PT${totalMinutes}M"
+}
+
+fun isUrlImage(stringUrl: String): Boolean {
+    val isSvgOrEmpty = stringUrl.endsWith("svg") || stringUrl.isEmpty()
+    if (isSvgOrEmpty) return false
+
+    var urlConnection: HttpURLConnection? = null
+    System.setProperty("http.keepAlive", "false")
+    return try {
+        val url = URL(stringUrl)
+        urlConnection = url.openConnection() as HttpURLConnection
+        val contentType = urlConnection.getHeaderField("Content-Type")
+        contentType.startsWith("image/")
+    } catch (e: MalformedURLException) {
+        e.printStackTrace()
+        false
+    } catch (e: IOException) {
+        e.printStackTrace()
+        false
+    } finally {
+        urlConnection?.disconnect()
+    }
 }

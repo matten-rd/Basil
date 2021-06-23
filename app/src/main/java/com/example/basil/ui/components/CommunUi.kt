@@ -8,17 +8,25 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.basil.R
@@ -58,6 +66,7 @@ fun ErrorScreen(
  * A text field without text input and only reacts to onClicks.
  * Used to display and select date.
  */
+@ExperimentalComposeUiApi
 @Composable
 fun ReadonlyTextField(
     value: String,
@@ -85,6 +94,7 @@ fun ReadonlyTextField(
 /**
  * The TextField used for the Basil app.
  */
+@ExperimentalComposeUiApi
 @Composable
 fun BasilTextField(
     modifier: Modifier = Modifier,
@@ -94,14 +104,22 @@ fun BasilTextField(
     textStyle: TextStyle = LocalTextStyle.current.copy(color = MaterialTheme.colors.primary),
     cursorColor: Brush = SolidColor(MaterialTheme.colors.primary),
     color: Color = MaterialTheme.colors.primary,
+    imeAction: ImeAction = ImeAction.Done,
     trailingIcon: @Composable () -> Unit = {}
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.defaultMinSize(minHeight = 42.dp),
         cursorBrush = cursorColor,
-        textStyle = textStyle
+        textStyle = textStyle,
+        keyboardOptions = KeyboardOptions(imeAction = imeAction),
+        keyboardActions = KeyboardActions(
+            onDone = { keyboardController?.hide() },
+            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+        )
     ) { innerTextField ->
         Row(
             modifier = Modifier
@@ -158,6 +176,7 @@ fun DisplayListOfString(list: List<String>, content: @Composable (Int, String) -
  * Supports adding and deleting (with snackbar undo). 
  * (Possible to support editing current items).
  */
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @Composable
 fun EditableList(
@@ -232,6 +251,7 @@ fun TextAndButton(
 /**
  * A fully function TextField with a header placed above it.
  */
+@ExperimentalComposeUiApi
 @Composable
 fun TextFieldWithHeader(
     modifier: Modifier = Modifier,

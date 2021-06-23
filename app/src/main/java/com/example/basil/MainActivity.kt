@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
@@ -39,6 +40,7 @@ import kotlinx.coroutines.delay
 class MainActivity : AppCompatActivity() {
     private val recipeViewModel: RecipeViewModel by viewModels()
 
+    @ExperimentalComposeUiApi
     @ExperimentalFoundationApi
     @ExperimentalAnimationApi
     @ExperimentalMaterialApi
@@ -52,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
@@ -110,6 +113,7 @@ fun LandingScreen(
 }
 
 
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi

@@ -221,9 +221,20 @@ fun CreateImageTopAppBar(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
+    val updatingRecipe by viewModel.recipe.observeAsState()
     CreateBaseTopAppBar(
         onBack = { navController.navigate(Screen.Home.route) },
-        onSave = { /*TODO: Check that everything is ok and the save*/ }
+        onSave = {
+            if (updatingRecipe != null) {
+                viewModel.insertRecipe(updatingRecipe!!)
+                navController.navigate(Screen.Home.route)
+            } else {
+                scope.launch {
+                    scaffoldState.snackbarHostState
+                        .showSnackbar("Något gick fel!")
+                }
+            }
+        }
     )
 }
 

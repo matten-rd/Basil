@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -21,10 +22,13 @@ import com.example.basil.data.RecipeState
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
 import com.example.basil.ui.navigation.Screen
+import com.example.basil.util.getDurationFromHourAndMinute
 import com.example.basil.util.getHoursFromDuration
 import com.example.basil.util.getMinutesFromDuration
+import com.example.basil.util.humanReadableDuration
 import kotlinx.coroutines.launch
 
+@ExperimentalComposeUiApi
 @Composable
 fun CreateRecipe(
     navController: NavController,
@@ -38,42 +42,57 @@ fun CreateRecipe(
             modifier = Modifier.fillMaxWidth(),
             placeholder = "Ange en länk till ett recept"
         )
-        Button(
-            onClick = {
-                if (url.isNotEmpty()) {
-                    //saveAndNavigateBack(url, viewModel, navController)
-                }
-            }
-        ) {
-            Text(text = "Spara")
-        }
     }
 }
 
+@ExperimentalComposeUiApi
 @ExperimentalMaterialApi
 @Composable
 fun CreateImageRecipe(
     navController: NavController,
     viewModel: RecipeViewModel
 ) {
+    val categoryOptions = listOf("Förrätt", "Huvudrätt", "Efterrätt", "Bakning")
+    val initialRecipe = RecipeData(
+        url = "",
+        imageUrl = "https://picsum.photos/600/600",
+        recipeImageUrl = "https://picsum.photos/600/600",
+        recipeState = RecipeState.IMAGE,
+        title = "",
+        description = "",
+        ingredients = listOf(),
+        instructions = listOf(),
+        cookTime = "PT0M",
+        mealType = categoryOptions[1],
+        yield = "4",
+        isLiked = false
+    )
+    viewModel.onRecipeChange(initialRecipe)
+
+    CreateImageRecipe1(
+        navController = navController,
+        viewModel = viewModel,
+        initialRecipe = initialRecipe,
+        categoryOptions = categoryOptions
+    )
+}
+
+@ExperimentalComposeUiApi
+@ExperimentalMaterialApi
+@Composable
+fun CreateImageRecipe1(
+    navController: NavController,
+    viewModel: RecipeViewModel,
+    initialRecipe: RecipeData,
+    categoryOptions: List<String>
+) {
     var selectedBottomSheet by remember { mutableStateOf(BottomSheetScreens.PORTIONS) }
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     val scope = rememberCoroutineScope()
-    // Category state
-    val categoryOptions = listOf("Förrätt", "Huvudrätt", "Efterrätt", "Bakning")
-    val (category, setCategory) = remember { mutableStateOf(categoryOptions[1]) }
-    // Portion state
-    val (numberOfPortions, setNumberOfPortions) = remember { mutableStateOf(4) }
-    // Time state
-    val (hour, setHour) = remember { mutableStateOf(getHoursFromDuration("PT0M")) }
-    val (minute, setMinute) = remember { mutableStateOf(getMinutesFromDuration("PT0M")) }
-    // Title state
-    var title by remember { mutableStateOf("") }
-    // Description state
-    var description by remember { mutableStateOf("") }
+
     // Image state TODO: Use placeholders instead
-    var thumbnailImage by remember { mutableStateOf("https://picsum.photos/600/600") }
-    var recipeImage by remember { mutableStateOf("https://picsum.photos/600/600") }
+    var thumbnailImage by remember { mutableStateOf(initialRecipe.imageUrl) }
+    var recipeImage by remember { mutableStateOf(initialRecipe.recipeImageUrl) }
 
     val openSheet: (BottomSheetScreens) -> Unit = {
         selectedBottomSheet = it
@@ -83,39 +102,7 @@ fun CreateImageRecipe(
         scope.launch { sheetState.hide() }
     }
 
-    val updatingRecipe by viewModel.recipe.observeAsState(
-        RecipeData(
-            url = "",
-            imageUrl = thumbnailImage,
-            recipeImageUrl = recipeImage,
-            recipeState = RecipeState.IMAGE,
-            title = title,
-            description = description,
-            ingredients = listOf(),
-            instructions = listOf(),
-            cookTime = "PT0M",
-            mealType = category,
-            yield = numberOfPortions.toString(),
-            isLiked = false
-        )
-    )
-
-    viewModel.onRecipeChange(recipeData =
-        RecipeData(
-            url = "",
-            imageUrl = thumbnailImage,
-            recipeImageUrl = recipeImage,
-            recipeState = RecipeState.IMAGE,
-            title = title,
-            description = description,
-            ingredients = listOf(),
-            instructions = listOf(),
-            cookTime = "PT0M",
-            mealType = category,
-            yield = numberOfPortions.toString(),
-            isLiked = false
-        )
-    )
+    val updatingRecipe by viewModel.recipe.observeAsState(initialRecipe)
 
     val launcherThumbnail = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -134,15 +121,33 @@ fun CreateImageRecipe(
         sheetState = sheetState,
         sheetContent = {
             when (selectedBottomSheet) {
-                BottomSheetScreens.CATEGORY -> BottomSheetCategory(options = categoryOptions, selected = category, setSelected = setCategory, closeSheet = closeSheet)
-                BottomSheetScreens.PORTIONS -> BottomSheetPortions(range = 1..20, selected = numberOfPortions, setSelected = setNumberOfPortions, closeSheet = closeSheet)
+                BottomSheetScreens.CATEGORY -> BottomSheetCategory(
+                    options = categoryOptions,
+                    selected = updatingRecipe.mealType,
+                    setSelected = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) },
+                    closeSheet = closeSheet
+                )
+                BottomSheetScreens.PORTIONS -> BottomSheetPortions(
+                    range = 1..20,
+                    selected = updatingRecipe.yield.toIntOrNull() ?: 4,
+                    setSelected = { viewModel.onRecipeChange(updatingRecipe.copy(yield = it.toString())) },
+                    closeSheet = closeSheet
+                )
                 BottomSheetScreens.TIME -> BottomSheetTime(
                     hourRange = 0..10,
-                    selectedHour = hour,
-                    setSelectedHour = setHour,
+                    selectedHour = getHoursFromDuration(updatingRecipe.cookTime),
+                    setSelectedHour = {
+                        val min = getMinutesFromDuration(updatingRecipe.cookTime)
+                        val newCookTime = getDurationFromHourAndMinute(it, min)
+                        viewModel.onRecipeChange(updatingRecipe.copy(cookTime = newCookTime))
+                    },
                     minutesRange = 0..59,
-                    selectedMinute = minute,
-                    setSelectedMinute = setMinute,
+                    selectedMinute = getMinutesFromDuration(updatingRecipe.cookTime),
+                    setSelectedMinute = {
+                        val hour = getHoursFromDuration(updatingRecipe.cookTime)
+                        val newCookTime = getDurationFromHourAndMinute(hour, it)
+                        viewModel.onRecipeChange(updatingRecipe.copy(cookTime = newCookTime))
+                    },
                     closeSheet = closeSheet
                 )
                 else -> {}
@@ -158,22 +163,23 @@ fun CreateImageRecipe(
                 openSheet = openSheet,
                 title = updatingRecipe.title,
                 setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it)) },
-                description = description,
-                setDescription = { description = it },
+                description = updatingRecipe.description,
+                setDescription = { viewModel.onRecipeChange(updatingRecipe.copy(description = it)) },
                 thumbnailImage = updatingRecipe.imageUrl,
                 setThumbnailImage = { launcherThumbnail.launch(arrayOf("image/*")) },
                 recipeImage = updatingRecipe.recipeImageUrl,
                 setRecipeImage = { launcherRecipeImage.launch(arrayOf("image/*")) },
-                portions = numberOfPortions.toString(),
-                time = "$hour h $minute min",
-                category = category,
-                setCategory = setCategory
+                portions = updatingRecipe.yield,
+                time = humanReadableDuration(updatingRecipe.cookTime),
+                category = updatingRecipe.mealType,
+                setCategory = { viewModel.onRecipeChange(updatingRecipe.copy(mealType = it)) }
             )
         }
     }
 
 }
 
+@ExperimentalComposeUiApi
 @Composable
 fun CreateImageRecipeContent(
     openSheet: (BottomSheetScreens) -> Unit,
@@ -205,14 +211,4 @@ fun CreateImageRecipeContent(
     TextAndButton(text = time, onClick = { openSheet(BottomSheetScreens.TIME) })
     BasilSpacer()
     EditCategory(selected = category, setSelected = setCategory, onClick = { openSheet(BottomSheetScreens.CATEGORY) })
-}
-
-
-private fun saveAndNavigateBack(
-    url: String,
-    viewModel: RecipeViewModel,
-    navController: NavController
-) {
-    viewModel.createRecipe(url)
-    navController.navigate(Screen.Home.route)
 }

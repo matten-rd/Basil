@@ -16,9 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.basil.R
@@ -31,6 +33,7 @@ import kotlinx.coroutines.launch
 
 enum class BottomSheetScreens { CATEGORY, PORTIONS, TIME, SOURCE }
 
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
@@ -48,6 +51,7 @@ fun EditScreen(
     }
 }
 
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
@@ -196,8 +200,6 @@ fun EditScreen1(
                 .padding(16.dp)
         ) {
             EditContent(
-                navController = navController,
-                viewModel = viewModel,
                 openSheet = openSheet,
                 title = updatingRecipe.title,
                 setTitle = { viewModel.onRecipeChange(updatingRecipe.copy(title = it)) },
@@ -247,12 +249,11 @@ fun EditScreen1(
 }
 
 
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
 fun EditContent(
-    navController: NavController,
-    viewModel: RecipeViewModel,
     openSheet: (BottomSheetScreens) -> Unit,
     title: String,
     setTitle: (String) -> Unit,
@@ -308,7 +309,7 @@ fun EditContent(
         setNewValue = setNewInstruction,
         onShowSnackbar = onShowInstructionSnackbar,
         listHeaders = { Text(text = "Steg ${it+1}", modifier = Modifier.padding(top = 4.dp)) },
-        listItems = { BasilTextField(value = it, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth()) }
+        listItems = { BasilTextField(value = it, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth(), imeAction = ImeAction.Next) }
     )
     BasilSpacer()
     TextAndButton(text = "$numberOfPortions Portioner", onClick = { openSheet(BottomSheetScreens.PORTIONS) })
@@ -334,6 +335,7 @@ fun EditImage(
     )
 }
 
+@ExperimentalComposeUiApi
 @Composable
 fun ContentEdit(
     list: List<String>,
@@ -352,13 +354,14 @@ fun ContentEdit(
                 }
                 Column(Modifier.weight(1f)) {
                     header(index)
-                    BasilTextField(value = item, onValueChange = { /*TODO: Edit current item, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth())
+                    BasilTextField(value = item, onValueChange = { /*TODO: Edit current item, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth(), imeAction = ImeAction.Next)
                 }
             }
         }
     }
 }
 
+@ExperimentalComposeUiApi
 @Composable
 fun EditCategory(
     selected: String,
@@ -377,6 +380,7 @@ fun EditCategory(
     }
 }
 
+@ExperimentalComposeUiApi
 @Composable
 fun BottomSheetSource(
     source: String,
