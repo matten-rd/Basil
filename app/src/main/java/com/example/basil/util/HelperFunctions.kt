@@ -31,7 +31,7 @@ fun getHoursFromDuration(s: String): Int {
         val sNew = s.replace(Regex("Y.*D"), "D")
         (java.time.Duration.parse(sNew).toHours() % 24L).toInt()
     } catch (e: Exception) {
-        Log.e("getHoursFromDuration", e.message.toString())
+        Log.e("getHoursFromDuration", e.message.toString() + " Failed duration: $s")
         0
     }
 
@@ -42,7 +42,7 @@ fun getMinutesFromDuration(s: String): Int {
         val sNew = s.replace(Regex("Y.*D"), "D")
         (java.time.Duration.parse(sNew).toMinutes() % 60L).toInt()
     } catch (e: Exception) {
-        Log.e("getMinutesFromDuration", e.message.toString())
+        Log.e("getMinutesFromDuration", e.message.toString() + " Failed duration: $s")
         0
     }
 
@@ -56,7 +56,7 @@ fun humanReadableDuration(s: String): String {
         val minutes = time.toMinutes() % 60L
         "$hours h $minutes min"
     } catch (e: Exception) {
-        Log.e("humanReadableDuration", e.message.toString())
+        Log.e("humanReadableDuration", e.message.toString() + " Failed duration: $s")
         "0 h 0 min"
     }
 }
@@ -86,4 +86,29 @@ fun isUrlImage(stringUrl: String): Boolean {
     } finally {
         urlConnection?.disconnect()
     }
+}
+
+fun removePartMatchesFromList(list: List<String>): List<String> {
+    val returnList = mutableListOf<String>()
+    list.forEach { elem ->
+        val check = list.any { it.contains(elem) && it != elem }
+
+        if (check && elem !in returnList) {
+            returnList.add(elem)
+        }
+    }
+
+    /*
+    list.filter { elem ->
+        list.any { it.contains(elem) && it != elem }
+    }
+     */
+
+    if (returnList.isEmpty())
+        return list
+
+    return if (returnList != list)
+        removePartMatchesFromList(returnList)
+    else
+        returnList.toList()
 }

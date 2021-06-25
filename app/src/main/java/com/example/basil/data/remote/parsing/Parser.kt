@@ -60,7 +60,7 @@ fun parseURL(url: String): RecipeData {
     } catch (e: Exception) {
         Log.d("json-ld", e.message.toString())
         try {
-            recipeData = getRecipeFromTraversing(document = document, img = images[0])
+            recipeData = getRecipeFromTraversing(document = document, img = images[0], url = url)
 
         } catch (e: Exception) {
             Log.d("scraping", e.message.toString())
@@ -181,10 +181,17 @@ fun extractJsonLdParts(document: Document): JsonObject {
 }
 
 private fun getImages(document: Document): List<String> {
-    val media = document.select("[src]").distinctBy { it.attr("abs:src").toString() } // remove duplicates
+    // First try to get the correct image from the metadata.
+    val ogImage = document.select("meta[property='og:image'], meta[name='og:image']")
+        .attr("content").toString()
+    if (ogImage.isNotEmpty()) return listOf(ogImage)
+    // Then just get the largest image. // TODO: Implement image selector.
+    // TODO: Make this part more efficient.
+    val media = document.select("img[src~=(?i)\\.(png|jpe?g)]") // get .png .jpg .jpeg
+        .distinctBy { it.attr("abs:src").toString() } // remove duplicates
     val mediaLinks = mutableListOf<String>()
     for (src in media) {
-        val isValidImage = src.normalName().equals("img") && isUrlImage(src.attr("abs:src").toString())
+        val isValidImage = isUrlImage(src.attr("abs:src").toString())
         if (isValidImage) {
             println(" * ${src.tagName()}: <${src.attr("abs:src")}>")
             mediaLinks.add(src.attr("abs:src").toString())
@@ -194,7 +201,12 @@ private fun getImages(document: Document): List<String> {
         val largeMedia = mediaLinks.filter {
             val url = URL(it)
             val bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream())
-            bmp.width > 100 && bmp.height > 100
+            println("${bmp.width} X ${bmp.height} <${url.path.replaceAfterLast("/", "")}>")
+            bmp.width > 200 && bmp.height > 200
+        }.sortedBy {
+            val url = URL(it)
+            val bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream())
+            bmp.width
         }
         if (largeMedia.isNotEmpty())
             return largeMedia // #1 return large images
@@ -296,14 +308,15 @@ private fun getInstructions(obj: JsonObject): List<String> {
 
 private fun getRecipeFromTraversing(
     document: Document,
-    img: String
+    img: String,
+    url: String
 ): RecipeData {
     val title = traverseTitle(document)
     val description = traverseDescription(document)
     val (ingredients, instructions) = traverseIngredientsAndInstructions(document)
 
     return  RecipeData(
-        url = "url",
+        url = url,
         imageUrl = img,
         recipeImageUrl = "",
         recipeState = RecipeState.SCRAPED,
@@ -311,7 +324,7 @@ private fun getRecipeFromTraversing(
         description = description,
         ingredients = ingredients,
         instructions = instructions,
-        cookTime = "PTOM",
+        cookTime = "PT0M",
         yield = "4",
         mealType = "Huvudrätt",
         isLiked = false
@@ -359,23 +372,75 @@ private fun traverseIngredientsAndInstructions(document: Document): Pair<List<St
 
     val (ingredientNode1, ingredientNode2) = findTwoUniqueEntries(ingredientMap)
     val ingredientLcaNode = lowestCommonAncestor(ingredientNode1, ingredientNode2)
+
     val ingredients = listFromNode(ingredientLcaNode)
+    println("Ingredients")
+    println(ingredients)
+    println("-----------------------")
+    println(ingredientLcaNode)
 
     val (instructionNode1, instructionNode2) = findTwoUniqueEntries(instructionMap)
     val instructionLcaNode = lowestCommonAncestor(instructionNode1, instructionNode2)
-    val instructions = listFromNode(instructionLcaNode)
+    val instructions = lisFromNode(instructionLcaNode)
+    println("")
+    println("Instructions")
+    println(instructions)
+    println("-----------------------")
+    println(instructionLcaNode)
 
     return Pair(ingredients, instructions)
+}
+
+
+private fun checkNotListElement(node: Node): Node {
+    /**
+     * Checks that the Lca node is not part of a list - because then we want the whole list.
+     * If it is just part of a list then we recurse call this function with the parent node.
+     */
+    val tag = node.nodeName()
+    val illegalNodeNames = listOf<String>("li", "tr", "td", "p", "span")
+    return if (tag in illegalNodeNames) {
+        checkNotListElement(node.parent())
+    } else {
+        node
+    }
 }
 
 private fun listFromNode(node: Node): List<String> {
     /**
      * Return a Nodes childnodes content as a list.
+     * Different method compared to [lisFromNode].
+     * This one is suitable for ingredients.
      */
     return node.childNodes()
         .map { Jsoup.parse(it.outerHtml()).body().text() }
         .filter { it.isNotEmpty() }
 }
+
+
+private fun lisFromNode(inputNode: Node): List<String> {
+    /**
+     * Returns a Nodes childnodes content as a list.
+     * Different method compared to [listFromNode].
+     * This one is suitable for instructions.
+     */
+    val list = mutableListOf<String>()
+    inputNode.traverse(object : NodeVisitor {
+        override fun head(node: Node, depth: Int) {
+            val doc = Jsoup.parse(node.outerHtml())
+            val text = doc.body().text().trim()
+            if (text.isNotEmpty()) list.add(text)
+        }
+
+        override fun tail(node: Node, depth: Int) {
+            // leave empty
+        }
+    })
+    println(list)
+    return removePartMatchesFromList(list.distinct())
+}
+
+
 
 private fun findTwoUniqueEntries(map: MutableMap<Node, Double>): Pair<Node, Node> {
     /**
@@ -414,7 +479,7 @@ private fun lowestCommonAncestor(node1: Node?, node2: Node?): Node {
     var ancestor: Node? = node1
     while (ancestor != null) {
         if (isAncestor(ancestor, node2)) {
-            return ancestor
+            return checkNotListElement(ancestor)
         }
         ancestor = ancestor.parent()
     }

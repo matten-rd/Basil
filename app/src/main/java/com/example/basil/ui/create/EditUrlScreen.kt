@@ -37,7 +37,7 @@ enum class BottomSheetScreens { CATEGORY, PORTIONS, TIME, SOURCE }
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
-fun EditUrlScreen(
+fun EditScreen(
     navController: NavController,
     recipe: RecipeData?,
     viewModel: RecipeViewModel,
@@ -53,7 +53,7 @@ fun EditUrlScreen(
                 viewModel = viewModel
             )
         else
-            EditUrlScreenState(
+            EditUrlScreen(
                 navController = navController,
                 recipe = recipe,
                 viewModel = viewModel,
@@ -69,7 +69,7 @@ fun EditUrlScreen(
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
-fun EditUrlScreenState(
+fun EditUrlScreen(
     navController: NavController,
     recipe: RecipeData,
     viewModel: RecipeViewModel,

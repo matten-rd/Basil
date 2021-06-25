@@ -138,12 +138,12 @@ class ScoreInstruction {
         //print(scoreList)
         //println(normalizedScore)
 
-        return Pair(normalizedScore > 0.70, normalizedScore)
+        return Pair(normalizedScore > 0.60, normalizedScore)
     }
 
     private fun nodeNameCheck(node: Node): Boolean {
         val tag = node.nodeName()
-        return tag in listOf("span", "li", "ul", "table", "tbody", "tr", "td", "p") // true if it contains one of these
+        return tag in listOf("li", "ul", "ol", "table", "tbody", "tr", "td") // true if it contains one of these
     }
 
     private fun attributeCheck(node: Node): Boolean {
@@ -157,7 +157,7 @@ class ScoreInstruction {
     }
 
     private fun tooLong(instruction: String): Boolean {
-        return instruction.split(" ").size >= 1000 // if more than 1000 chars -> true
+        return instruction.length >= 500 // if more than 500 chars -> true
     }
 
     private fun multipleSentences(instruction: String): Boolean {
@@ -177,7 +177,7 @@ class ScoreInstruction {
     }
 
     private fun wordUsage(instruction: String): Boolean {
-        val instructionWords = listOf("skär", "hacka", "marinera", "koka", "stek", "blanda", "vispa", "tillsätt", "mixa", "sila", "skala", "sjud")
+        val instructionWords = listOf("skär", "hacka", "marinera", "koka", "stek", "blanda", "vispa", "tillsätt", "mixa", "sila", "skala", "sjud", "grader")
         val words = instruction.split(" ")
         var match = false
         val regex = Regex("\\b(?:${instructionWords.joinToString(separator = "|")})\\b", RegexOption.IGNORE_CASE)

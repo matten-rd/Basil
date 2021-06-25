@@ -78,7 +78,6 @@ fun BasilLazyRow(
                             recipeData = recipe,
                             viewModel = viewModel,
                             onClick = {
-                                println(recipe.toString())
                                 navController.currentBackStackEntry?.arguments?.putParcelable(
                                     "recipe_detail",
                                     recipe
