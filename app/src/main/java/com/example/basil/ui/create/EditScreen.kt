@@ -66,6 +66,27 @@ fun EditScreen(
 }
 
 @ExperimentalComposeUiApi
+@ExperimentalMaterialApi
+@Composable
+fun EditImageScreen(
+    navController: NavController,
+    recipe: RecipeData?,
+    viewModel: RecipeViewModel,
+) {
+    if (recipe != null) {
+        val categoryOptions = listOf("Förrätt", "Huvudrätt", "Efterrätt", "Bakning")
+        CreateImageRecipeState(
+            navController = navController,
+            initialRecipe = recipe,
+            viewModel = viewModel,
+            categoryOptions = categoryOptions
+        )
+    } else {
+        ErrorScreen(errorMessage = "Oops! Något gick fel! Försök igen snart!")
+    }
+}
+
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalMaterialApi
 @Composable
@@ -193,6 +214,11 @@ fun EditUrlScreen(
                 image = updatingRecipe.imageUrl,
                 setImage = { launcher.launch(arrayOf("image/*")) },
                 ingredients = updatingRecipe.ingredients,
+                onIngredientChange = { old, new ->
+                    val idx = ingredients.indexOf(old)
+                    ingredients[idx] = new
+                    viewModel.onRecipeChange(updatingRecipe.copy(ingredients = ingredients))
+                                     },
                 addIngredient = {
                     ingredients.add(newIngredient)
                     viewModel.onRecipeChange(updatingRecipe.copy(ingredients = ingredients))
@@ -205,6 +231,11 @@ fun EditUrlScreen(
                 newIngredient = newIngredient,
                 setNewIngredient = { newIngredient = it },
                 instructions = updatingRecipe.instructions,
+                onInstructionChange = { old, new ->
+                    val idx = instructions.indexOf(old)
+                    instructions[idx] = new
+                    viewModel.onRecipeChange(updatingRecipe.copy(instructions = instructions))
+                                      },
                 addInstruction = {
                     instructions.add(newInstruction)
                     viewModel.onRecipeChange(updatingRecipe.copy(instructions = instructions))
@@ -247,11 +278,13 @@ fun EditUrlScreenContent(
     image: String,
     setImage: () -> Unit,
     ingredients: List<String>,
+    onIngredientChange: (String, String) -> Unit,
     addIngredient: () -> Unit,
     deleteIngredient: (Int) -> Unit,
     newIngredient: String,
     setNewIngredient: (String) -> Unit,
     instructions: List<String>,
+    onInstructionChange: (String, String) -> Unit,
     addInstruction: () -> Unit,
     deleteInstruction: (Int) -> Unit,
     newInstruction: String,
@@ -275,6 +308,7 @@ fun EditUrlScreenContent(
         subHeader = "Ingredienser",
         placeholder = "Lägg till en ingrediens",
         list = ingredients,
+        onValueChange = onIngredientChange,
         addToList = addIngredient,
         deleteFromList = deleteIngredient,
         newValue = newIngredient,
@@ -287,13 +321,14 @@ fun EditUrlScreenContent(
         subHeader = "Instruktioner",
         placeholder = "Lägg till ett steg",
         list = instructions,
+        onValueChange = onInstructionChange,
         addToList = addInstruction,
         deleteFromList = deleteInstruction,
         newValue = newInstruction,
         setNewValue = setNewInstruction,
         onShowSnackbar = onShowInstructionSnackbar,
         listHeaders = { Text(text = "Steg ${it+1}", modifier = Modifier.padding(top = 4.dp)) },
-        listItems = { BasilTextField(value = it, onValueChange = { /*TODO: Edit current instructions, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth(), imeAction = ImeAction.Next) }
+        listItems = { BasilTextField(value = it, onValueChange = {  }, modifier = Modifier.fillMaxWidth(), imeAction = ImeAction.Next) }
     )
     BasilSpacer()
     TextAndButton(text = "$numberOfPortions Portioner", onClick = { openSheet(BottomSheetScreens.PORTIONS) })
@@ -324,6 +359,7 @@ fun EditImage(
 fun ContentEdit(
     list: List<String>,
     delete: (Int) -> Unit,
+    onValueChange: (String, String) -> Unit,
     onShowSnackbar: (Int, String) -> Unit,
     header: @Composable (Int) -> Unit = {}
 ) {
@@ -338,7 +374,12 @@ fun ContentEdit(
                 }
                 Column(Modifier.weight(1f)) {
                     header(index)
-                    BasilTextField(value = item, onValueChange = { /*TODO: Edit current item, something with the index maybe*/ }, modifier = Modifier.fillMaxWidth(), imeAction = ImeAction.Next)
+                    BasilTextField(
+                        value = item,
+                        onValueChange = { onValueChange(item, it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        imeAction = ImeAction.Next
+                    )
                 }
             }
         }

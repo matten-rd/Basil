@@ -18,7 +18,6 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -183,6 +182,7 @@ fun EditableList(
     subHeader: String,
     placeholder: String,
     list: List<String>,
+    onValueChange: (String, String) -> Unit,
     addToList: () -> Unit,
     deleteFromList: (Int) -> Unit,
     newValue: String,
@@ -203,7 +203,13 @@ fun EditableList(
         }
         AnimatedContent(targetState = checked) { isEdit ->
             if (isEdit)
-                ContentEdit(list = list, delete = deleteFromList, onShowSnackbar = onShowSnackbar, header = { listHeaders(it) })
+                ContentEdit(
+                    list = list,
+                    delete = deleteFromList,
+                    onValueChange = onValueChange,
+                    onShowSnackbar = onShowSnackbar,
+                    header = { listHeaders(it) }
+                )
             else
                 DisplayListOfString(list = list) { idx, item ->
                     listHeaders(idx)

@@ -305,7 +305,6 @@ private fun getInstructions(obj: JsonObject): List<String> {
 /**
  * Get the recipe by traversing the HTML.
  */
-
 private fun getRecipeFromTraversing(
     document: Document,
     img: String,
@@ -373,7 +372,7 @@ private fun traverseIngredientsAndInstructions(document: Document): Pair<List<St
     val (ingredientNode1, ingredientNode2) = findTwoUniqueEntries(ingredientMap)
     val ingredientLcaNode = lowestCommonAncestor(ingredientNode1, ingredientNode2)
 
-    val ingredients = listFromNode(ingredientLcaNode)
+    var ingredients = listFromNode(ingredientLcaNode)
     println("Ingredients")
     println(ingredients)
     println("-----------------------")
@@ -381,12 +380,16 @@ private fun traverseIngredientsAndInstructions(document: Document): Pair<List<St
 
     val (instructionNode1, instructionNode2) = findTwoUniqueEntries(instructionMap)
     val instructionLcaNode = lowestCommonAncestor(instructionNode1, instructionNode2)
-    val instructions = lisFromNode(instructionLcaNode)
+    var instructions = lisFromNode(instructionLcaNode)
     println("")
     println("Instructions")
     println(instructions)
     println("-----------------------")
     println(instructionLcaNode)
+
+    // Remove if ingredients are in instructions and vice versa
+    instructions = instructions.minus(ingredients)
+    ingredients = ingredients.minus(instructions)
 
     return Pair(ingredients, instructions)
 }
