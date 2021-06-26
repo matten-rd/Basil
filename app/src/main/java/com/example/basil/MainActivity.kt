@@ -97,7 +97,7 @@ fun MainScreen(recipeViewModel: RecipeViewModel) {
         }
 }
 
-private const val SplashWaitTime: Long = 2000
+private const val SplashWaitTime: Long = 1000
 
 @Composable
 fun LandingScreen(

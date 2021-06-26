@@ -29,10 +29,14 @@ import com.example.basil.ui.theme.Green500
 
 
 @Composable
-fun load(viewModel: RecipeViewModel): State<Lce<List<RecipeData>>> {
-    return produceState(initialValue = Lce.Loading, key1 = viewModel) {
+fun load(viewModel: RecipeViewModel): State<List<RecipeData>> {
+    return produceState(initialValue = emptyList<RecipeData>(), key1 = viewModel) {
         val recipes = viewModel.allRecipes.value
+        if (recipes != null) {
+            value = recipes
+        } else {
 
+        }
     }
 }
 
@@ -54,7 +58,6 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
             recipes = recipesFromVM!!
         )
     }
-
 }
 
 @ExperimentalFoundationApi
@@ -76,7 +79,6 @@ fun HomeScreenContent(
         BasilLazyRow(recipes = recipes, navController = navController, viewModel = viewModel)
     }
 }
-
 
 
 @ExperimentalAnimationApi
