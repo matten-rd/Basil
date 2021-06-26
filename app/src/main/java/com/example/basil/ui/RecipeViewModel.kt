@@ -1,11 +1,15 @@
 package com.example.basil.ui
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.*
+import com.example.basil.common.Lce
 import com.example.basil.data.RecipeDao
 import com.example.basil.data.RecipeData
 import com.example.basil.data.remote.parsing.parseURL
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,11 +40,15 @@ class RecipeViewModel @Inject constructor(
         _recipe.value = recipeData
     }
 
+    val loading = mutableStateOf(false)
+
     fun createRecipe(url: String) {
         viewModelScope.launch(Dispatchers.IO) {
+            loading.value = true
             val recipeData = parseURL(url)
             _recipe.postValue(recipeData)
             insertRecipe(recipeData)
+            loading.value = false
         }
         onUrlChange("")
     }

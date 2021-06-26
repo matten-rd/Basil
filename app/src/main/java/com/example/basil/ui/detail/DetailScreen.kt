@@ -48,11 +48,13 @@ import com.example.basil.ui.theme.Green100
 import com.example.basil.util.*
 import com.google.accompanist.insets.LocalWindowInsets
 import com.google.accompanist.insets.statusBarsPadding
+import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
 
 
 private val TabHeight = 50.dp
 
+@ExperimentalPagerApi
 @ExperimentalMaterialApi
 @Composable
 fun DetailScreen(navController: NavController, recipe: RecipeData?) {
@@ -63,6 +65,7 @@ fun DetailScreen(navController: NavController, recipe: RecipeData?) {
     }
 }
 
+@ExperimentalPagerApi
 @ExperimentalMaterialApi
 @Composable
 fun DetailScreenContent(navController: NavController, recipe: RecipeData) {
@@ -193,6 +196,7 @@ fun TitleAndDescription(recipe: RecipeData) {
     }
 }
 
+@ExperimentalPagerApi
 @Composable
 fun TabSheet(
     recipe: RecipeData,
@@ -278,10 +282,10 @@ fun PortionsAndCategory(
             Text(text = "Tid", style = MaterialTheme.typography.subtitle2)
             Text(text = humanReadableDuration(recipe.cookTime), style = MaterialTheme.typography.subtitle1)
         }
-
     }
 }
 
+@ExperimentalPagerApi
 @Composable
 fun InstructionsAndIngredients(
     recipe: RecipeData,
@@ -289,9 +293,9 @@ fun InstructionsAndIngredients(
     surfaceColor: Color = MaterialTheme.colors.background,
     updateSheet: (SheetState) -> Unit
 ) {
-
-    var state by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
     val titles = listOf("Ingredienser", "Instruktioner", getDomainName(recipe.url))
+    val pagerState = rememberPagerState(pageCount = titles.size)
 
     Box(modifier = Modifier.fillMaxWidth()) {
 
@@ -301,34 +305,41 @@ fun InstructionsAndIngredients(
                 .statusBarsPadding()
         ) {
             TabRow(
-                selectedTabIndex = state,
+                selectedTabIndex = pagerState.currentPage,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.pagerTabIndicatorOffset(pagerState, tabPositions)
+                    )
+                },
                 backgroundColor = MaterialTheme.colors.background,
                 contentColor = MaterialTheme.colors.primary,
                 modifier = Modifier.height(50.dp)
             ) {
                 titles.forEachIndexed { index, title ->
                     Tab(
-                        selected = state == index,
+                        selected = pagerState.currentPage == index,
                         onClick = {
                             updateSheet(SheetState.OPEN)
-                            state = index
+                            scope.launch {
+                                pagerState.animateScrollToPage(page = index)
+                            }
                         }
                     ) {
                         Text(text = title)
                     }
                 }
             }
-            Crossfade(targetState = state) {
-                when (it) {
-                    0 -> IngredientsTab(recipe = recipe)
-                    1 -> InstructionsTab(recipe = recipe)
-                    2 -> WebViewTab(recipe = recipe)
+            HorizontalPager(state = pagerState) { page ->
+                Column(Modifier.fillMaxSize()) {
+                    when (page) {
+                        0 -> IngredientsTab(recipe = recipe)
+                        1 -> InstructionsTab(recipe = recipe)
+                        2 -> WebViewTab(recipe = recipe)
+                    }
                 }
             }
         }
-
     }
-
 }
 
 @Composable
@@ -380,7 +391,6 @@ fun InstructionsTab(
             }
         }
     }
-
 }
 
 @Composable
@@ -490,7 +500,7 @@ fun ImageTab(
             .transformable(state = state)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onDoubleTap = { scale = 1f ; offset = Offset.Zero }
+                    onDoubleTap = { scale = 1f; offset = Offset.Zero }
                 )
             }
     )

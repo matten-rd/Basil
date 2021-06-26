@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
 import com.example.basil.R
+import com.example.basil.common.Lce
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.ui.components.*
@@ -26,13 +27,44 @@ import com.example.basil.ui.navigation.Screen
 import com.example.basil.ui.theme.Green500
 
 
+
+@Composable
+fun load(viewModel: RecipeViewModel): State<Lce<List<RecipeData>>> {
+    return produceState(initialValue = Lce.Loading, key1 = viewModel) {
+        val recipes = viewModel.allRecipes.value
+
+    }
+}
+
+
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
 @ExperimentalMaterialApi
 @Composable
 fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
-    val recipesFromVM = viewModel.allRecipes.observeAsState()
+    val recipesFromVM by viewModel.allRecipes.observeAsState()
+    val isLoading by viewModel.loading
 
+    if (isLoading || recipesFromVM == null) {
+        LoadingScreen()
+    } else {
+        HomeScreenContent(
+            navController = navController,
+            viewModel = viewModel,
+            recipes = recipesFromVM!!
+        )
+    }
+
+}
+
+@ExperimentalFoundationApi
+@ExperimentalAnimationApi
+@Composable
+fun HomeScreenContent(
+    navController: NavController,
+    viewModel: RecipeViewModel,
+    recipes: List<RecipeData>
+) {
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = "BASiL",
@@ -41,9 +73,7 @@ fun HomeScreen(navController: NavController, viewModel: RecipeViewModel) {
             letterSpacing = 8.sp
         )
 
-        recipesFromVM.value?.let { recipes ->
-            BasilLazyRow(recipes = recipes, navController = navController, viewModel = viewModel)
-        }
+        BasilLazyRow(recipes = recipes, navController = navController, viewModel = viewModel)
     }
 }
 

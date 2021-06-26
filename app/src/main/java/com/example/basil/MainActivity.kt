@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.*
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
+import com.example.basil.ui.components.LoadingScreen
 import com.example.basil.ui.create.CreateImageRecipe
 import com.example.basil.ui.create.CreateUrlRecipe
 import com.example.basil.ui.create.EditScreen
@@ -32,6 +33,7 @@ import com.example.basil.ui.detail.DetailScreen
 import com.example.basil.ui.home.HomeScreen
 import com.example.basil.ui.navigation.*
 import com.example.basil.ui.theme.BasilTheme
+import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -40,6 +42,7 @@ import kotlinx.coroutines.delay
 class MainActivity : AppCompatActivity() {
     private val recipeViewModel: RecipeViewModel by viewModels()
 
+    @ExperimentalPagerApi
     @ExperimentalComposeUiApi
     @ExperimentalFoundationApi
     @ExperimentalAnimationApi
@@ -49,11 +52,13 @@ class MainActivity : AppCompatActivity() {
         setContent {
             BasilTheme {
                 MainScreen(recipeViewModel = recipeViewModel)
+                //BasilApp(recipeViewModel = recipeViewModel)
             }
         }
     }
 }
 
+@ExperimentalPagerApi
 @ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
@@ -113,6 +118,7 @@ fun LandingScreen(
 }
 
 
+@ExperimentalPagerApi
 @ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
@@ -173,7 +179,11 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
         backLayerBackgroundColor = MaterialTheme.colors.background,
         frontLayerBackgroundColor = MaterialTheme.colors.background,
         frontLayerShape = RectangleShape,
-        frontLayerScrimColor = MaterialTheme.colors.background.copy(0.5f)
+        frontLayerScrimColor = MaterialTheme.colors.background.copy(0.5f),
+        gesturesEnabled = when (currentRoute) {
+            Screen.Home.route -> true
+            else -> false
+        }
 
     )
 }

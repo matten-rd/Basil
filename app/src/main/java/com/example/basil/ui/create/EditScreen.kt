@@ -19,6 +19,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -327,8 +328,8 @@ fun EditUrlScreenContent(
         newValue = newInstruction,
         setNewValue = setNewInstruction,
         onShowSnackbar = onShowInstructionSnackbar,
-        listHeaders = { Text(text = "Steg ${it+1}", modifier = Modifier.padding(top = 4.dp)) },
-        listItems = { BasilTextField(value = it, onValueChange = {  }, modifier = Modifier.fillMaxWidth(), imeAction = ImeAction.Next) }
+        listHeaders = { Text(text = "Steg ${it+1}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp)) },
+        listItems = { Text(text = it, modifier = Modifier.padding(bottom = 12.dp, top = 4.dp)) }
     )
     BasilSpacer()
     TextAndButton(text = "$numberOfPortions Portioner", onClick = { openSheet(BottomSheetScreens.PORTIONS) })
