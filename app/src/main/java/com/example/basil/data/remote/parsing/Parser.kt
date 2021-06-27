@@ -30,7 +30,6 @@ import kotlin.time.ExperimentalTime
 
 fun parseURL(url: String): RecipeData {
     val document = Jsoup.connect(url).get()
-    val components = mutableListOf<Component>()
 
     lateinit var recipeData: RecipeData
 
@@ -54,71 +53,73 @@ fun parseURL(url: String): RecipeData {
     val description = traverseDescription(document = document)
 
     try {
+        // json-ld blob
         val jsonLd = extractJsonLdParts(document)
         recipeData = getRecipeFromJsonld(jsonLd = jsonLd, img = images[0], url = url)
 
     } catch (e: Exception) {
         Log.d("json-ld", e.message.toString())
+
         try {
+            // traversing
             recipeData = getRecipeFromTraversing(document = document, img = images[0], url = url)
 
         } catch (e: Exception) {
-            Log.d("scraping", e.message.toString())
+            Log.d("traversing", e.message.toString())
+
             try {
-                recipeData = RecipeData(
-                    url = url,
-                    imageUrl = images[0],
-                    recipeImageUrl = "",
-                    recipeState = RecipeState.WEBVIEW,
-                    title = title,
-                    description = description,
-                    ingredients = listOf(),
-                    instructions = listOf(),
-                    cookTime = "PT0M",
-                    yield = "4",
-                    mealType = "Huvudrätt",
-                    isLiked = false
-                )
+                // microdata
+                recipeData = getRecipeFromMicrodata(document = document, img = images[0], url = url)
 
             } catch (e: Exception) {
-                Log.d("webview", e.message.toString())
-                // Final way out
-                recipeData = RecipeData(
-                    url = url,
-                    imageUrl = "https://picsum.photos/600/600",
-                    recipeImageUrl = "",
-                    recipeState = RecipeState.WEBVIEW,
-                    title = "Ingen titel",
-                    description = "",
-                    ingredients = listOf(),
-                    instructions = listOf(),
-                    cookTime = "PT0M",
-                    yield = "4",
-                    mealType = "Huvudrätt",
-                    isLiked = false
-                )
+                Log.d("microdata", e.message.toString())
+
+                try {
+                    // webview with title and description
+                    recipeData = RecipeData(
+                        url = url,
+                        imageUrl = images[0],
+                        recipeImageUrl = "",
+                        recipeState = RecipeState.WEBVIEW,
+                        title = title,
+                        description = description,
+                        ingredients = listOf(),
+                        instructions = listOf(),
+                        cookTime = "PT0M",
+                        yield = "4",
+                        mealType = "Huvudrätt",
+                        isLiked = false
+                    )
+
+                } catch (e: Exception) {
+                    Log.d("webview", e.message.toString())
+                    // Final way out - just webview
+                    recipeData = RecipeData(
+                        url = url,
+                        imageUrl = "https://picsum.photos/600/600",
+                        recipeImageUrl = "",
+                        recipeState = RecipeState.WEBVIEW,
+                        title = "Ingen titel",
+                        description = "",
+                        ingredients = listOf(),
+                        instructions = listOf(),
+                        cookTime = "PT0M",
+                        yield = "4",
+                        mealType = "Huvudrätt",
+                        isLiked = false
+                    )
+                }
             }
         }
+
     }
 
     // tasteline has some weird format on their json-ld - need some way to check if the data in json-ld is pretty
     // for ingredients is one idea to check if some of the contains numbers (if not it's ugly)
     // Should implement a way for the user to review the scraped data and if they are not satisfied then rerun it using another method.
 
-    components.add(parseTitle(recipeData.title))
-    components.add(parseDescription(recipeData.description))
-    components.add(parseIngredients(recipeData.ingredients))
-
     return recipeData
 }
-
-
-
-private fun parseTitle(title: String): Title = Title(text = title)
-
-private fun parseDescription(description: String): Description = Description(text = description)
-
-private fun parseIngredients(ingredients: List<String>): Ingredients = Ingredients(list = ingredients)
 
 /**
  * Get the recipe using the JSON-LD blob.
@@ -277,20 +278,6 @@ private fun getInstructions(obj: JsonObject): List<String> {
         ins.add("Något gick snett :(")
     }
 
-
-    /**
-     * This will be difficult since all websites seem to have different ways of displaying this.
-     *
-     * - In most cases search for the format:
-     * {
-     *   "@type":"HowToStep",
-     *   "text":""Instruction"",
-     *   "some extra properties": ...
-     * }
-     * - Sometimes it will just be a list of instruction strings in which case it can be parsed the same way as the ingredients.
-     * - One idea is to iterate over "recipeInstructions" and check the length/number of words and if it is > someAmount then it most likely is an instruction.
-     */
-
     // clean the instructions from possible html tags and quotes before returning
     return ins.map {
         removeQuotes(
@@ -299,6 +286,49 @@ private fun getInstructions(obj: JsonObject): List<String> {
                 .toString()
         )
     }.distinct()
+}
+
+/**
+ * Get the recipe from Microdata (itemprop).
+ */
+private fun getRecipeFromMicrodata(
+    document: Document,
+    img: String,
+    url: String
+): RecipeData {
+    val title = traverseTitle(document)
+    val description = traverseDescription(document)
+    val (ingredients, instructions) = microdataIngredientsAndInstructions(document)
+
+    return  RecipeData(
+        url = url,
+        imageUrl = img,
+        recipeImageUrl = "",
+        recipeState = RecipeState.SCRAPED,
+        title = title,
+        description = description,
+        ingredients = ingredients,
+        instructions = instructions,
+        cookTime = "PT0M",
+        yield = "4",
+        mealType = "Huvudrätt",
+        isLiked = false
+    )
+}
+
+private fun microdataIngredientsAndInstructions(document: Document): Pair<List<String>, List<String>> {
+    val ingredientElements = document.select("[itemprop*='recipeIngredient'")
+    val instructionElements = document.select("[itemprop*='recipeInstruction'")
+
+    val ingredients = ingredientElements.map {
+        Jsoup.parse(it.outerHtml()).body().text()
+    }.filter { it.isNotEmpty() }.distinct()
+
+    val instructions = instructionElements.map {
+        Jsoup.parse(it.outerHtml()).body().text()
+    }.filter { it.isNotEmpty() }.distinct()
+
+    return Pair(ingredients, instructions)
 }
 
 
@@ -380,7 +410,7 @@ private fun traverseIngredientsAndInstructions(document: Document): Pair<List<St
 
     val (instructionNode1, instructionNode2) = findTwoUniqueEntries(instructionMap)
     val instructionLcaNode = lowestCommonAncestor(instructionNode1, instructionNode2)
-    var instructions = lisFromNode(instructionLcaNode)
+    var instructions = lisFromNode(instructionLcaNode, ingredients)
     println("")
     println("Instructions")
     println(instructions)
@@ -421,7 +451,7 @@ private fun listFromNode(node: Node): List<String> {
 }
 
 
-private fun lisFromNode(inputNode: Node): List<String> {
+private fun lisFromNode(inputNode: Node, ingredientList: List<String> = listOf()): List<String> {
     /**
      * Returns a Nodes childnodes content as a list.
      * Different method compared to [listFromNode].
@@ -432,18 +462,34 @@ private fun lisFromNode(inputNode: Node): List<String> {
         override fun head(node: Node, depth: Int) {
             val doc = Jsoup.parse(node.outerHtml())
             val text = doc.body().text().trim()
-            if (text.isNotEmpty()) list.add(text)
+            if (
+                text.isNotEmpty() &&
+                text.split(" ").size > 2 &&
+                text !in list &&
+                !isPartOfIngredients(text, ingredientList)
+            )
+                list.add(text)
         }
 
         override fun tail(node: Node, depth: Int) {
             // leave empty
         }
     })
-    println(list)
-    return removePartMatchesFromList(list.distinct())
+    println("List from node: ${list.distinct()}")
+    return list.distinct()
 }
 
-
+private fun isPartOfIngredients(instruction: String, ingredients: List<String>): Boolean {
+    /**
+     * Returns if an instruction contains a part match from the ingredient list.
+     */
+    ingredients.forEach { ingredient ->
+        if (instruction in ingredient || ingredient in instruction) {
+            return true
+        }
+    }
+    return false
+}
 
 private fun findTwoUniqueEntries(map: MutableMap<Node, Double>): Pair<Node, Node> {
     /**

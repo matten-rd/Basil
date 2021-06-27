@@ -90,19 +90,15 @@ fun isUrlImage(stringUrl: String): Boolean {
 
 fun removePartMatchesFromList(list: List<String>): List<String> {
     val returnList = mutableListOf<String>()
-    list.forEach { elem ->
-        val check = list.any { it.contains(elem) && it != elem }
 
-        if (check && elem !in returnList) {
+    list.forEach { elem ->
+        if (list.any { it in elem && it != elem } || elem in returnList) {
+
+        } else {
             returnList.add(elem)
         }
     }
-
-    /*
-    list.filter { elem ->
-        list.any { it.contains(elem) && it != elem }
-    }
-     */
+    println(returnList)
 
     if (returnList.isEmpty())
         return list
@@ -110,5 +106,5 @@ fun removePartMatchesFromList(list: List<String>): List<String> {
     return if (returnList != list)
         removePartMatchesFromList(returnList)
     else
-        returnList.toList()
+        returnList
 }

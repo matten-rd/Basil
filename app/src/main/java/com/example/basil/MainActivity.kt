@@ -1,5 +1,6 @@
 package com.example.basil
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -49,10 +50,14 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalMaterialApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.action.equals(Intent.ACTION_SEND)) {
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            recipeViewModel.createRecipe(text.toString())
+        }
         setContent {
             BasilTheme {
-                MainScreen(recipeViewModel = recipeViewModel)
-                //BasilApp(recipeViewModel = recipeViewModel)
+                //MainScreen(recipeViewModel = recipeViewModel)
+                BasilApp(recipeViewModel = recipeViewModel)
             }
         }
     }

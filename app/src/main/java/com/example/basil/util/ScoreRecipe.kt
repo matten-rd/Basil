@@ -11,11 +11,6 @@ enum class Scores(val value: Int) {
 }
 
 class ScoreIngredient {
-    /**
-     * General idea:
-     * if one of the nodes that gets checked scores as an ingredient
-     * then I will assume that all of its siblings are ingredients as well
-     */
 
     fun isIngredient(node: Node): Pair<Boolean, Double> {
         val html = node.outerHtml()
@@ -44,12 +39,7 @@ class ScoreIngredient {
         )
         val totalScore = scoreList.sum()
 
-
         val normalizedScore = totalScore.toDouble()/possibleScore.toDouble()
-        //print(scoreList)
-        //println(normalizedScore)
-
-
 
         return Pair(normalizedScore > 0.60, normalizedScore)
     }
@@ -135,8 +125,6 @@ class ScoreInstruction {
         val totalScore = scoreList.sum()
 
         val normalizedScore = totalScore.toDouble()/possibleScore.toDouble()
-        //print(scoreList)
-        //println(normalizedScore)
 
         return Pair(normalizedScore > 0.60, normalizedScore)
     }
