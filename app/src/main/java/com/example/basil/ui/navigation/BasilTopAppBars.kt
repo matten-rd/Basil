@@ -11,8 +11,6 @@ import androidx.navigation.NavController
 import com.example.basil.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import androidx.core.content.ContextCompat.startActivity
-
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -21,10 +19,12 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
-import androidx.core.content.ContextCompat
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
 import com.example.basil.util.isValidUrl
+import com.google.accompanist.insets.LocalWindowInsets
+import com.google.accompanist.insets.rememberInsetsPaddingValues
+import com.google.accompanist.insets.ui.TopAppBar
 
 
 @Composable
@@ -42,6 +42,10 @@ fun BaseTopAppBar(
         actions = actions,
         backgroundColor = backgroundColor,
         contentColor = contentColor,
+        contentPadding = rememberInsetsPaddingValues(
+            insets = LocalWindowInsets.current.statusBars,
+            applyBottom = false
+        ),
         elevation = elevation
     )
 }

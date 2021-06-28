@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.basil.R
 import com.example.basil.ui.create.ContentEdit
+import com.google.accompanist.insets.navigationBarsWithImePadding
 
 /**
  * Standard spacing that is used for most of the Basil app.
@@ -111,7 +112,7 @@ fun BasilTextField(
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.defaultMinSize(minHeight = 42.dp),
+        modifier = modifier.defaultMinSize(minHeight = 42.dp).navigationBarsWithImePadding(),
         cursorBrush = cursorColor,
         textStyle = textStyle,
         keyboardOptions = KeyboardOptions(imeAction = imeAction),

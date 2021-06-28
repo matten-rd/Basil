@@ -14,24 +14,15 @@ import org.jsoup.nodes.Node
 import org.jsoup.select.Elements
 import org.jsoup.select.NodeVisitor
 import java.lang.IllegalStateException
-import java.util.stream.Collectors
-import android.graphics.Bitmap
-import androidx.compose.runtime.produceState
 import androidx.core.text.HtmlCompat
 import com.example.basil.data.RecipeState
 import com.example.basil.util.*
-import com.gargoylesoftware.htmlunit.WebClient
-import com.gargoylesoftware.htmlunit.html.HtmlPage
 import java.net.URL
 import kotlin.streams.toList
-import kotlin.time.ExperimentalTime
-
 
 
 fun parseURL(url: String): RecipeData {
     val document = Jsoup.connect(url).get()
-
-    lateinit var recipeData: RecipeData
 
     val images = getImages(document)
 
@@ -48,110 +39,145 @@ fun parseURL(url: String): RecipeData {
     println(docu.outerHtml())
     webClient.closeAllWindows()
      */
-
-    val title = traverseTitle(document = document)
-    val description = traverseDescription(document = document)
-
-    try {
-        // json-ld blob
-        val jsonLd = extractJsonLdParts(document)
-        recipeData = getRecipeFromJsonld(jsonLd = jsonLd, img = images[0], url = url)
-
+    val jsonBlob = try {
+        extractJsonLdParts(document)
     } catch (e: Exception) {
-        Log.d("json-ld", e.message.toString())
-
-        try {
-            // traversing
-            recipeData = getRecipeFromTraversing(document = document, img = images[0], url = url)
-
-        } catch (e: Exception) {
-            Log.d("traversing", e.message.toString())
-
-            try {
-                // microdata
-                recipeData = getRecipeFromMicrodata(document = document, img = images[0], url = url)
-
-            } catch (e: Exception) {
-                Log.d("microdata", e.message.toString())
-
-                try {
-                    // webview with title and description
-                    recipeData = RecipeData(
-                        url = url,
-                        imageUrl = images[0],
-                        recipeImageUrl = "",
-                        recipeState = RecipeState.WEBVIEW,
-                        title = title,
-                        description = description,
-                        ingredients = listOf(),
-                        instructions = listOf(),
-                        cookTime = "PT0M",
-                        yield = "4",
-                        mealType = "Huvudrätt",
-                        isLiked = false
-                    )
-
-                } catch (e: Exception) {
-                    Log.d("webview", e.message.toString())
-                    // Final way out - just webview
-                    recipeData = RecipeData(
-                        url = url,
-                        imageUrl = "https://picsum.photos/600/600",
-                        recipeImageUrl = "",
-                        recipeState = RecipeState.WEBVIEW,
-                        title = "Ingen titel",
-                        description = "",
-                        ingredients = listOf(),
-                        instructions = listOf(),
-                        cookTime = "PT0M",
-                        yield = "4",
-                        mealType = "Huvudrätt",
-                        isLiked = false
-                    )
-                }
-            }
-        }
-
+        JsonObject()
     }
+
+    return getRecipe(url, jsonBlob, document, images[0])
+
 
     // tasteline has some weird format on their json-ld - need some way to check if the data in json-ld is pretty
     // for ingredients is one idea to check if some of the contains numbers (if not it's ugly)
     // Should implement a way for the user to review the scraped data and if they are not satisfied then rerun it using another method.
 
-    return recipeData
 }
 
-/**
- * Get the recipe using the JSON-LD blob.
- */
-
-private fun getRecipeFromJsonld(
+private fun getRecipe(
+    url: String,
     jsonLd: JsonObject,
-    img: String,
-    url: String
+    document: Document,
+    img: String
 ): RecipeData {
-    val title = getTitle(jsonLd)
-    val description = getDescription(jsonLd)
-    val ingredients = getIngredients(jsonLd)
-    val instructions = getInstructions(jsonLd)
-    val recipeYield = extractNumbers( getYield(jsonLd) )
+    val title = getTitle(jsonLd, document)
+    val description = getDescription(jsonLd, document)
+    val ingredients = getIngredients(jsonLd, document)
+    val instructions = getInstructions(jsonLd, document, ingredients)
     val time = getTime(jsonLd)
+    val recipeYield = getYield(jsonLd)
 
-    return  RecipeData(
+    val recipeState = if (ingredients.isEmpty() || instructions.isEmpty()) {
+        RecipeState.WEBVIEW
+    } else {
+        RecipeState.SCRAPED
+    }
+
+    return RecipeData(
         url = url,
         imageUrl = img,
         recipeImageUrl = "",
-        recipeState = RecipeState.SCRAPED,
+        recipeState = recipeState,
         title = title,
         description = description,
-        ingredients = ingredients,
-        instructions = instructions,
+        ingredients = ingredients.minus(instructions),
+        instructions = instructions.minus(ingredients),
         cookTime = time,
         yield = recipeYield,
         mealType = "Huvudrätt",
         isLiked = false
     )
+}
 
+private fun getTitle(
+    jsonLd: JsonObject,
+    document: Document
+): String {
+    return try {
+        jsonTitle(jsonLd)
+    } catch (e: Exception) {
+        Log.d("Title: jsonld", e.message.toString())
+
+        try {
+            traverseTitle(document)
+        } catch (e: Exception) {
+            Log.d("Title: traverse", e.message.toString())
+            ""
+        }
+    }
+}
+
+private fun getDescription(
+    jsonLd: JsonObject,
+    document: Document
+): String {
+    return try {
+        jsonDescription(jsonLd)
+    } catch (e: Exception) {
+        Log.d("Desctiption: jsonld", e.message.toString())
+
+        try {
+            traverseDescription(document)
+        } catch (e: Exception) {
+            Log.d("Description: traverse", e.message.toString())
+            ""
+        }
+    }
+}
+
+private fun getIngredients(
+    jsonLd: JsonObject,
+    document: Document
+): List<String> {
+    return try {
+        jsonIngredients(jsonLd)
+    } catch (e: Exception) {
+        Log.d("Ingredients: jsonld", e.message.toString())
+
+        try {
+            traverseIngredients(document)
+        } catch (e: Exception) {
+            Log.d("Ingredients: traverse", e.message.toString())
+            listOf<String>()
+        }
+    }
+}
+
+private fun getInstructions(
+    jsonLd: JsonObject,
+    document: Document,
+    ingredients: List<String>
+): List<String> {
+    return try {
+        jsonInstructions(jsonLd)
+    } catch (e: Exception) {
+        Log.d("Instructions: jsonld", e.message.toString())
+
+        try {
+            traverseInstructions(document, ingredients)
+        } catch (e: Exception) {
+            Log.d("Instructions: traverse", e.message.toString())
+            listOf<String>()
+        }
+    }
+}
+
+private fun getTime(jsonLd: JsonObject): String {
+    return try {
+        jsonTime(jsonLd)
+    } catch (e: Exception) {
+        Log.d("Time", e.message.toString())
+        "PT0M"
+    }
+}
+
+private fun getYield(jsonLd: JsonObject): String {
+    return try {
+        extractNumbers( jsonYield(jsonLd) )
+    } catch (e: Exception) {
+        Log.d("Yield", e.message.toString())
+        "4"
+    }
 }
 
 fun extractJsonLdParts(document: Document): JsonObject {
@@ -162,10 +188,14 @@ fun extractJsonLdParts(document: Document): JsonObject {
         val jsonElem = JsonParser.parseString(it.data())
 
         // Get the type of script tag (looking for @type: Recipe)
-        val type = when (JSONTokener(it.data()).nextValue()) {
-            is JSONObject -> jsonElem.asJsonObject.get("@type").toString()
-            is JSONArray -> jsonElem.asJsonArray.last().asJsonObject.get("@type").toString() //TODO: Don't just get the last one
-            else -> "Error"
+        val type = try {
+            when (JSONTokener(it.data()).nextValue()) {
+                is JSONObject -> jsonElem.asJsonObject.get("@type").toString()
+                is JSONArray -> jsonElem.asJsonArray.last().asJsonObject.get("@type").toString() //TODO: Don't just get the last one
+                else -> "Something weird"
+            }
+        } catch (e: Exception) {
+            "Error"
         }
 
         // if type is Recipe then get the JsonObject it contains
@@ -218,15 +248,15 @@ private fun getImages(document: Document): List<String> {
     }
 }
 
-private fun getTitle(obj: JsonObject): String {
+private fun jsonTitle(obj: JsonObject): String {
     return removeQuotes(obj.get("name").toString())
 }
 
-private fun getDescription(obj: JsonObject): String {
+private fun jsonDescription(obj: JsonObject): String {
     return removeQuotes(obj.get("description").toString())
 }
 
-private fun getIngredients(obj: JsonObject): List<String> {
+private fun jsonIngredients(obj: JsonObject): List<String> {
     return obj.get("recipeIngredient").asJsonArray.map {
         removeQuotes(HtmlCompat
             .fromHtml(it.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
@@ -235,15 +265,15 @@ private fun getIngredients(obj: JsonObject): List<String> {
     }.distinct()
 }
 
-private fun getYield(obj: JsonObject): String {
+private fun jsonYield(obj: JsonObject): String {
     return removeQuotes(obj.get("recipeYield").toString())
 }
 
-private fun getTime(obj: JsonObject): String {
+private fun jsonTime(obj: JsonObject): String {
     return removeQuotes(obj.get("totalTime").toString())
 }
 
-private fun getInstructions(obj: JsonObject): List<String> {
+private fun jsonInstructions(obj: JsonObject): List<String> {
     val ins: MutableList<String> = mutableListOf()
 
     val instructionsNode = obj.get("recipeInstructions")
@@ -272,8 +302,15 @@ private fun getInstructions(obj: JsonObject): List<String> {
     } else if (instructionsNode.isJsonObject) {
         val instructionsObj = instructionsNode.asJsonObject
         instructionsObj.get("itemListElement").asJsonArray.forEach {
-            ins.add(it.toString())
+            if (it.isJsonObject) {
+                val instructionObj = it.asJsonObject
+                val instruction = instructionObj.get("itemListElement").asJsonObject.get("text").toString()
+                ins.add(instruction)
+            } else {
+                ins.add(it.toString())
+            }
         }
+
     } else {
         ins.add("Något gick snett :(")
     }
@@ -332,34 +369,6 @@ private fun microdataIngredientsAndInstructions(document: Document): Pair<List<S
 }
 
 
-/**
- * Get the recipe by traversing the HTML.
- */
-private fun getRecipeFromTraversing(
-    document: Document,
-    img: String,
-    url: String
-): RecipeData {
-    val title = traverseTitle(document)
-    val description = traverseDescription(document)
-    val (ingredients, instructions) = traverseIngredientsAndInstructions(document)
-
-    return  RecipeData(
-        url = url,
-        imageUrl = img,
-        recipeImageUrl = "",
-        recipeState = RecipeState.SCRAPED,
-        title = title,
-        description = description,
-        ingredients = ingredients,
-        instructions = instructions,
-        cookTime = "PT0M",
-        yield = "4",
-        mealType = "Huvudrätt",
-        isLiked = false
-    )
-}
-
 private fun traverseTitle(document: Document): String {
     val title = document.select("meta[property='og:title'], meta[name='og:title']").attr("content").toString()
     return if (title.isNotEmpty()) title else document.title().toString()
@@ -369,61 +378,47 @@ private fun traverseDescription(document: Document): String {
     return document.select("meta[property='og:description'], meta[name='og:description']").attr("content").toString()
 }
 
-private fun traverseIngredientsAndInstructions(document: Document): Pair<List<String>, List<String>> {
-    /**
-     * Idea:
-     * If I find one node that is an ingredient then I will assume all of its siblings are as well.
-     * How to:
-     * Find the two nodes with the highest ingredient scores and calculate their LCA and then this
-     * nodes (LCA node) children will be all ingredients.
-     * Then do it in the same way with instructions.
-     */
+private fun traverseIngredients(document: Document): List<String> {
     val ingredientMap = mutableMapOf<Node, Double>()
+
+    document.traverse(object : NodeVisitor {
+        override fun head(node: Node, depth: Int) {
+            val nodeScore: Pair<Boolean, Double> = ScoreIngredient().isIngredient(node)
+            if (nodeScore.first) {
+                ingredientMap.put(node, nodeScore.second)
+            }
+        }
+
+        override fun tail(node: Node?, depth: Int) {
+            // Leave empty
+        }
+    })
+    val (ingredientNode1, ingredientNode2) = findTwoUniqueEntries(ingredientMap)
+    val ingredientLcaNode = lowestCommonAncestor(ingredientNode1, ingredientNode2)
+
+    return listFromNode(ingredientLcaNode)
+}
+
+private fun traverseInstructions(document: Document, ingredients: List<String> = listOf()): List<String> {
     val instructionMap = mutableMapOf<Node, Double>()
 
     document.traverse(object : NodeVisitor {
         override fun head(node: Node, depth: Int) {
-
-            val nodeIngredientScore: Pair<Boolean, Double> = ScoreIngredient().isIngredient(node)
-            if (nodeIngredientScore.first) {
-                ingredientMap.put(node, nodeIngredientScore.second)
-            }
-
-            val nodeInstructionScore: Pair<Boolean, Double> = ScoreInstruction().isInstruction(node)
-            if (nodeInstructionScore.first) {
-                instructionMap.put(node, nodeInstructionScore.second)
+            val nodeScore: Pair<Boolean, Double> = ScoreInstruction().isInstruction(node)
+            if (nodeScore.first) {
+                instructionMap.put(node, nodeScore.second)
             }
         }
+
         override fun tail(node: Node?, depth: Int) {
-            // hel
+            // Leave empty
         }
     })
-
-    val (ingredientNode1, ingredientNode2) = findTwoUniqueEntries(ingredientMap)
-    val ingredientLcaNode = lowestCommonAncestor(ingredientNode1, ingredientNode2)
-
-    var ingredients = listFromNode(ingredientLcaNode)
-    println("Ingredients")
-    println(ingredients)
-    println("-----------------------")
-    println(ingredientLcaNode)
-
     val (instructionNode1, instructionNode2) = findTwoUniqueEntries(instructionMap)
     val instructionLcaNode = lowestCommonAncestor(instructionNode1, instructionNode2)
-    var instructions = lisFromNode(instructionLcaNode, ingredients)
-    println("")
-    println("Instructions")
-    println(instructions)
-    println("-----------------------")
-    println(instructionLcaNode)
 
-    // Remove if ingredients are in instructions and vice versa
-    instructions = instructions.minus(ingredients)
-    ingredients = ingredients.minus(instructions)
-
-    return Pair(ingredients, instructions)
+    return lisFromNode(instructionLcaNode, ingredients)
 }
-
 
 private fun checkNotListElement(node: Node): Node {
     /**

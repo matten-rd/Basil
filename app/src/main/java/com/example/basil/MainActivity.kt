@@ -12,6 +12,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
@@ -20,9 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.*
 import com.example.basil.data.RecipeData
 import com.example.basil.ui.RecipeViewModel
@@ -34,6 +37,10 @@ import com.example.basil.ui.detail.DetailScreen
 import com.example.basil.ui.home.HomeScreen
 import com.example.basil.ui.navigation.*
 import com.example.basil.ui.theme.BasilTheme
+import com.google.accompanist.insets.LocalWindowInsets
+import com.google.accompanist.insets.ProvideWindowInsets
+import com.google.accompanist.insets.navigationBarsPadding
+import com.google.accompanist.insets.systemBarsPadding
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
@@ -50,14 +57,26 @@ class MainActivity : AppCompatActivity() {
     @ExperimentalMaterialApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Handle if link is shared from a browser
         if (intent.action.equals(Intent.ACTION_SEND)) {
             val text = intent.getStringExtra(Intent.EXTRA_TEXT)
             recipeViewModel.createRecipe(text.toString())
         }
+
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+
         setContent {
+            val systemUiController = rememberSystemUiController()
+            val useDarkIcons = MaterialTheme.colors.isLight
+            SideEffect {
+                systemUiController.setSystemBarsColor(color = Color.Transparent, darkIcons = useDarkIcons)
+            }
+
             BasilTheme {
-                //MainScreen(recipeViewModel = recipeViewModel)
-                BasilApp(recipeViewModel = recipeViewModel)
+                ProvideWindowInsets(windowInsetsAnimationsEnabled = true) {
+                    //MainScreen(recipeViewModel = recipeViewModel)
+                    BasilApp(recipeViewModel = recipeViewModel, modifier = Modifier)
+                }
             }
         }
     }
@@ -137,14 +156,6 @@ fun BasilApp(recipeViewModel: RecipeViewModel, modifier: Modifier = Modifier) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val systemUiController = rememberSystemUiController()
-    val systemBarsColor = MaterialTheme.colors.background
-    SideEffect {
-        systemUiController.setSystemBarsColor(
-            color = systemBarsColor
-        )
-    }
-    
     BackdropScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
